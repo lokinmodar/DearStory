@@ -1,6 +1,6 @@
 # DearStory Design Specification
 
-- Status: Design approved; written specification awaiting review
+- Status: Approved for implementation planning
 - Date: 2026-07-15
 - Repository: `lokinmodar/DearStory`
 - Initial platform: Windows

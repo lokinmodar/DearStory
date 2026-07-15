@@ -9,10 +9,14 @@ one versioned protocol, one documentation model, and one conformance suite.
 
 ## Project status
 
-DearStory is in its design phase. No runtime API is stable yet.
+DearStory has an approved architecture and is entering implementation planning.
+No runtime API is stable yet.
 
 The approved architecture is documented in
 [`docs/superpowers/specs/2026-07-15-dearstory-design.md`](docs/superpowers/specs/2026-07-15-dearstory-design.md).
+
+The first execution-ready plan is the
+[cross-language protocol bootstrap](docs/superpowers/plans/2026-07-15-dearstory-protocol-bootstrap.md).
 
 ## Direction
 
