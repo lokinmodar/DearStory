@@ -1,2 +1,10 @@
 .worktrees/
 .superpowers/
+.vs/
+.vscode/
+artifacts/
+build/
+TestResults/
+coverage/
+.cache/
+*.user
