@@ -83,3 +83,25 @@ TEST_CASE("protocol_framing rejects an oversized prefix before buffering payload
     REQUIRE_FALSE(result.has_value());
     REQUIRE(result.error().code == "protocol.frame_too_large");
 }
+
+TEST_CASE("protocol_framing rejects a payload larger than 1 MiB during frame encoding")
+{
+    std::string oversized_payload(dearstory::protocol::max_control_frame_bytes + 1, 'x');
+    REQUIRE_THROWS_AS(dearstory::protocol::frame(oversized_payload), std::invalid_argument);
+}
+
+TEST_CASE("protocol_framing remains terminal after an oversized prefix")
+{
+    constexpr std::uint32_t oversize = dearstory::protocol::max_control_frame_bytes + 1;
+    const auto prefix_value = std::bit_cast<std::array<std::byte, sizeof(std::uint32_t)>>(oversize);
+    const auto valid_frame = dearstory::protocol::frame(R"({"type":"hello"})");
+
+    dearstory::protocol::frame_decoder decoder;
+    const auto first = decoder.push(std::span(prefix_value));
+    REQUIRE_FALSE(first.has_value());
+    REQUIRE(first.error().code == "protocol.frame_too_large");
+
+    const auto second = decoder.push(as_span(valid_frame));
+    REQUIRE_FALSE(second.has_value());
+    REQUIRE(second.error().code == "protocol.frame_too_large");
+}

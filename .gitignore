@@ -6,6 +6,8 @@ artifacts/
 build/
 TestResults/
 coverage/
+!tests/coverage/
+!tests/coverage/*.xml
 .cache/
 bin/
 obj/

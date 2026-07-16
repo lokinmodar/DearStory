@@ -237,7 +237,7 @@ pipe_connection::operator bool() const noexcept
     return handle_ != nullptr;
 }
 
-std::optional<std::string> pipe_connection::read_payload()
+std::optional<std::string> pipe_connection::read_payload(std::stop_token stop_token)
 {
     if (!buffered_frames_.empty())
     {
@@ -252,7 +252,7 @@ std::optional<std::string> pipe_connection::read_payload()
     {
         auto const bytes_read = run_overlapped(
             handle,
-            std::stop_token{},
+            stop_token,
             "read",
             [&](OVERLAPPED* overlapped) {
                 return ReadFile(

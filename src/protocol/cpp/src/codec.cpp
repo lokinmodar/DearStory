@@ -151,11 +151,6 @@ namespace
     version parse_envelope_version(nlohmann::json const& object)
     {
         auto const payload_version = parse_generated_version(object);
-        if (payload_version.major != current_major)
-        {
-            throw std::runtime_error("The envelope protocol major is unsupported.");
-        }
-
         return version{ payload_version.major, payload_version.minor };
     }
 

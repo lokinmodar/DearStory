@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest)
 
 add_subdirectory(src/protocol/cpp)
+add_subdirectory(tools/DearStory.ProtocolProbe.Cpp)
 
 if(BUILD_TESTING)
     add_subdirectory(tests/unit/protocol/cpp)

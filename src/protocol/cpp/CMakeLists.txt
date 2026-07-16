@@ -21,3 +21,10 @@ target_link_libraries(
 
 include(${CMAKE_SOURCE_DIR}/cmake/dearstory_warnings.cmake)
 dearstory_enable_warnings(dearstory_protocol_cpp)
+
+if(MSVC)
+    target_compile_options(
+        dearstory_protocol_cpp
+        PRIVATE
+            "$<$<CONFIG:Release>:/Zi>")
+endif()

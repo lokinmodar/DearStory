@@ -97,6 +97,46 @@ Optional fields: `binding`, `dearImGuiVersion`, `dearImGuiIdentity`
 4. Otherwise the accepting peer returns `reject`.
 5. The initiating peer either proceeds using `welcome.negotiatedVersion` or terminates the session after `reject`.
 
+## Negotiation semantics
+
+- Successful negotiation uses the lower supported minor version among peers that share the same major version.
+- `welcome.acceptedCapabilities` is the sorted intersection of the local and remote supported capability sets.
+- `welcome.correlationId` and `reject.correlationId` must echo the initiating `hello.messageId`.
+- Duplicate entries in `supportedCapabilities` or `requiredCapabilities` are treated as `protocol.invalid_envelope`.
+- A major-version mismatch returns `protocol.major_mismatch` together with a recovery message naming the supported protocol line.
+- A missing required capability returns `protocol.required_capability_missing` together with a recovery message naming the missing capability.
+
+## Transport validation semantics
+
+- A receiver rejects a declared frame length greater than `1,048,576` bytes before renting or allocating a payload buffer.
+- Malformed UTF-8, malformed JSON, missing required envelope fields, invalid UUIDs, invalid timestamps, and payload/type mismatches return `protocol.invalid_envelope`.
+- Unknown optional envelope members are ignored for forward compatibility.
+- Unknown control message types return `protocol.unknown_message_type`.
+
+## Cross-language probe contract
+
+The Task 10 black-box conformance layer ships two one-shot probes:
+
+- `DearStory.ProtocolProbe.Cpp`
+- `DearStory.ProtocolProbe.DotNet`
+
+Each probe supports both directions:
+
+- `serve --pipe <name> --once`
+- `connect --pipe <name> --role <role> [--require <capability>] [--protocol-major <major>] [--protocol-minor <minor>]`
+
+Stable process exit-code categories are:
+
+| Exit code | Category | Meaning |
+| --- | --- | --- |
+| `0` | success | The probe completed the handshake flow and emitted a terminal summary. |
+| `20` | usage | Command-line arguments were invalid. |
+| `21` | pipe | Named-pipe connection or transport I/O failed. |
+| `22` | protocol | Envelope decoding or negotiation failed and produced a terminal reject or protocol diagnostic. |
+| `23` | timeout | The peer did not produce the next required handshake event before the timeout elapsed. |
+
+Timeouts and peer termination before `welcome` are harness-level outcomes rather than wire-level messages, but they are part of the public black-box conformance contract because both native and managed probes report them through the same exit-code categories and diagnostic streams.
+
 ## Complete transcript
 
 Request:
@@ -137,6 +177,25 @@ Response:
     "peerId": "33333333-3333-4333-8333-333333333333",
     "negotiatedVersion": { "major": 1, "minor": 0 },
     "acceptedCapabilities": ["control.handshake.v1"]
+  }
+}
+```
+
+Reject example:
+
+```json
+{
+  "protocol": { "major": 1, "minor": 0 },
+  "type": "reject",
+  "messageId": "22222222-2222-4222-8222-222222222222",
+  "correlationId": "11111111-1111-4111-8111-111111111111",
+  "timestamp": "2026-07-15T12:00:00.100Z",
+  "payload": {
+    "error": {
+      "code": "protocol.required_capability_missing",
+      "message": "The remote peer requires an unsupported capability.",
+      "recovery": "Retry with capability control.handshake.v1 or connect to a peer that supports it."
+    }
   }
 }
 ```

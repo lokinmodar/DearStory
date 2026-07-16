@@ -92,6 +92,23 @@ public sealed class NamedPipeControlIntegrationTests
         _ = serverConnection;
     }
 
+    [Fact(Timeout = 10_000)]
+    public async Task Server_rejects_a_second_accept_after_transferring_the_first_connection()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var pipeName = $"dearstory-test-{Guid.NewGuid():N}";
+        await using var server = new NamedPipeControlServer(pipeName);
+        var firstAcceptTask = server.AcceptAsync(cancellationToken).AsTask();
+        await using var client = await NamedPipeControlClient.ConnectAsync(pipeName, cancellationToken);
+        await using var serverConnection = await firstAcceptTask;
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => server.AcceptAsync(cancellationToken).AsTask());
+
+        Assert.Equal("This server instance already accepted a client.", error.Message);
+        _ = serverConnection;
+    }
+
     private static ControlEnvelope CreateHelloEnvelope(Guid messageId) =>
         new(
             new ProtocolVersion(1, 0),

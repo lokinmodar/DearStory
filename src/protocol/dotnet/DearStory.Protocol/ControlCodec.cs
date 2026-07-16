@@ -185,11 +185,6 @@ public static class ControlCodec
             throw new FormatException("The protocol version object is invalid.");
         }
 
-        if (major != ProtocolVersion.CurrentMajor)
-        {
-            throw new FormatException("The envelope protocol major is unsupported.");
-        }
-
         return new ProtocolVersion(major, minor);
     }
 
@@ -267,6 +262,7 @@ public sealed class DecodeResult
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = false,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip)]
 [JsonSerializable(typeof(Hello))]
 [JsonSerializable(typeof(ImplementationIdentity))]

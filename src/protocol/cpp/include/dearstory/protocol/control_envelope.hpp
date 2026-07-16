@@ -9,7 +9,9 @@
 
 namespace dearstory::protocol {
 
+/// Aliases the generated protocol error payload used across the public API.
 using protocol_error = generated::protocol_error;
+/// Aliases the supported control payload union used by the DearStory envelope surface.
 using control_payload = std::variant<generated::hello, generated::welcome, generated::reject>;
 
 /// Represents a decoded DearStory control envelope.
@@ -32,9 +34,10 @@ struct control_envelope final {
     /// Stores the RFC 3339 UTC timestamp.
     std::string timestamp{};
 
-    /// Stores the typed payload selected by <see cref="type" />.
+    /// Stores the typed payload selected by \ref type.
     control_payload payload{};
 
+    /// Compares two control envelopes for value equality.
     friend bool operator==(control_envelope const&, control_envelope const&) = default;
 };
 

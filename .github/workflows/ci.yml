@@ -45,19 +45,33 @@ jobs:
           git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
           git -C $env:VCPKG_ROOT checkout 1db84273378ff8e2d30e7bc7fdd5d1cb4f4260fc
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
-          New-Item -ItemType Directory -Force -Path .\artifacts\logs | Out-Null
+          New-Item -ItemType Directory -Force -Path .\artifacts\logs, .\artifacts\coverage, .\artifacts\docs | Out-Null
 
       - name: Doctor
         shell: pwsh
         run: pwsh -NoProfile -File .\eng\doctor.ps1
 
+      - name: Check generated protocol sources
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\generate-protocol.ps1 -Check
+
+      - name: Install coverage and docs tooling
+        shell: pwsh
+        run: |
+          choco install opencppcoverage --version=0.9.9 --yes --no-progress
+          choco install doxygen.install --version=1.17.0 --yes --no-progress
+
       - name: Build
         shell: pwsh
-        run: pwsh -NoProfile -File .\eng\build.ps1 -Configuration Debug
+        run: pwsh -NoProfile -File .\eng\build.ps1 -Configuration Release
 
-      - name: Test
+      - name: Test and collect coverage
         shell: pwsh
-        run: pwsh -NoProfile -File .\eng\test.ps1 -Configuration Debug
+        run: pwsh -NoProfile -File .\eng\test.ps1 -Configuration Release -Coverage
+
+      - name: Generate C++ API docs
+        shell: pwsh
+        run: doxygen .\Doxyfile
 
       - name: Save vcpkg binary cache
         if: always()
@@ -70,6 +84,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: windows-logs
-          path: .\artifacts\logs
+          name: windows-artifacts
+          path: |
+            .\artifacts\logs
+            .\artifacts\coverage
+            .\artifacts\docs
+            .\TestResults
           if-no-files-found: warn

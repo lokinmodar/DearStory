@@ -27,6 +27,9 @@ struct handshake_policy final {
 };
 
 /// Negotiates a hello control envelope into a welcome or reject envelope.
+/// \param hello_envelope The initiating hello envelope sent by the remote peer.
+/// \param policy The local negotiation policy applied to the hello message.
+/// \returns A welcome envelope when negotiation succeeds; otherwise, a reject envelope.
 [[nodiscard]] control_envelope negotiate(control_envelope const& hello_envelope, handshake_policy const& policy);
 
 } // namespace dearstory::protocol

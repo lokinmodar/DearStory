@@ -26,5 +26,16 @@ target_compile_definitions(
     PRIVATE
         DEARSTORY_REPOSITORY_ROOT="${CMAKE_SOURCE_DIR}")
 
+if(MSVC)
+    target_compile_options(
+        dearstory-protocol-cpp-tests
+        PRIVATE
+            "$<$<CONFIG:Release>:/Zi>")
+    target_link_options(
+        dearstory-protocol-cpp-tests
+        PRIVATE
+            "$<$<CONFIG:Release>:/DEBUG:FULL>")
+endif()
+
 include(Catch)
 catch_discover_tests(dearstory-protocol-cpp-tests)
