@@ -2,8 +2,11 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(
     dearstory_protocol_cpp
+    src/handshake.cpp
     src/codec.cpp
-    src/framing.cpp)
+    src/framing.cpp
+    src/windows/named_pipe_client.cpp
+    src/windows/named_pipe_server.cpp)
 add_library(DearStory::ProtocolCpp ALIAS dearstory_protocol_cpp)
 
 target_include_directories(

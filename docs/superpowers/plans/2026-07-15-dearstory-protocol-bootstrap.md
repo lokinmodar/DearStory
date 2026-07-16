@@ -1155,10 +1155,13 @@ git commit -m "feat: add bounded managed control codec"
 
 - Create: `src/protocol/cpp/include/dearstory/protocol/handshake.hpp`
 - Create: `src/protocol/cpp/include/dearstory/protocol/windows/named_pipe_server.hpp`
+- Create: `src/protocol/cpp/include/dearstory/protocol/windows/named_pipe_client.hpp`
 - Create: `src/protocol/cpp/src/handshake.cpp`
 - Create: `src/protocol/cpp/src/windows/named_pipe_server.cpp`
+- Create: `src/protocol/cpp/src/windows/named_pipe_client.cpp`
 - Create: `src/protocol/dotnet/DearStory.Protocol/HandshakeNegotiator.cs`
 - Create: `src/protocol/dotnet/DearStory.Protocol/Windows/NamedPipeControlClient.cs`
+- Create: `src/protocol/dotnet/DearStory.Protocol/Windows/NamedPipeControlServer.cs`
 - Create: `tests/unit/protocol/cpp/handshake_tests.cpp`
 - Create: `tests/unit/protocol/dotnet/DearStory.Protocol.Tests/HandshakeNegotiatorTests.cs`
 - Create: `tests/integration/protocol/DearStory.Protocol.IntegrationTests/*`
@@ -1166,10 +1169,14 @@ git commit -m "feat: add bounded managed control codec"
 **Interfaces:**
 
 - Consumes: codecs/framing from Tasks 7 and 8.
-- Produces: C++ `negotiate(hello const&, handshake_policy const&) ->
-  variant<welcome,reject>`, C# `HandshakeNegotiator.Negotiate`, C++
-  `named_pipe_server::accept(stop_token) -> pipe_connection`, and C#
-  `NamedPipeControlClient.ConnectAsync`.
+- Produces: C++ `negotiate(control_envelope const& hello_envelope,
+  handshake_policy const&) -> control_envelope`, C#
+  `HandshakeNegotiator.Negotiate(ControlEnvelope helloEnvelope,
+  HandshakePolicy policy) -> ControlEnvelope`, C++
+  `named_pipe_server::accept(stop_token) -> pipe_connection`, C++
+  `named_pipe_client::connect(std::wstring_view pipe_name, stop_token) ->
+  pipe_connection`, C# `NamedPipeControlClient.ConnectAsync`, and C#
+  `NamedPipeControlServer.AcceptAsync`.
 
 - [ ] **Step 1: Write negotiation tests before transport code**
 
@@ -1190,9 +1197,13 @@ correlation ID equals the hello message ID.
 
 The policy contains local version, supported capabilities, implementation
 identity, and an injected UUID/time provider. `negotiate` is deterministic for
-the same inputs. It never opens a pipe, reads the clock directly, logs, or
-starts a process. Reject messages contain a recovery action naming supported
-major/minor or the missing capability.
+the same inputs and always returns either a `welcome` or `reject` control
+envelope. Successful negotiation sorts the accepted capabilities, copies the
+incoming hello `messageId` into the response `correlationId`, uses the injected
+UUID provider for the response `messageId` and welcome `sessionId`, and uses
+the injected clock for the response timestamp. It never opens a pipe, reads the
+clock directly, logs, or starts a process. Reject messages contain a recovery
+action naming supported major/minor or the missing capability.
 
 - [ ] **Step 3: Write loopback pipe tests**
 
@@ -1206,11 +1217,17 @@ second-client-rejected cases. Set a 10-second test timeout; do not use sleeps.
 The native server owns `HANDLE`s through a move-only RAII `unique_handle`, uses
 `CreateNamedPipeW` with byte mode and one instance, `ConnectNamedPipe`,
 `ReadFile`, `WriteFile`, and `CancelIoEx`. Preserve `GetLastError()` in
-`protocol_error.details` and close every handle on all exits.
+`protocol_error.details` and close every handle on all exits. The native client
+uses `CreateFileW`, `SetNamedPipeHandleState`, `ReadFile`, `WriteFile`, and
+`CancelIoEx`, and it exposes the same framed read/write surface as the server
+connection.
 
 The managed client uses `NamedPipeClientStream` in asynchronous byte mode,
 passes cancellation to `ConnectAsync`, uses the framing API exclusively, and
-implements `IAsyncDisposable`. Neither adapter performs JSON parsing itself.
+implements `IAsyncDisposable`. The managed server uses
+`NamedPipeServerStream` in asynchronous byte mode, accepts exactly one client
+per server instance, and exposes the same framed read/write surface. Neither
+adapter performs JSON parsing itself.
 
 - [ ] **Step 5: Run unit and integration tests**
 
@@ -1287,15 +1304,21 @@ native error code/errno when available, syscall/operation, stdout, and stderr.
 
 - [ ] **Step 2: Implement one-shot probes**
 
-The native probe accepts `serve --pipe <name> --once`, accepts exactly one
-connection, decodes exactly one hello, writes welcome or reject, emits one
-JSON diagnostic line to stderr on failure, and returns stable exit codes:
-`0 success`, `20 usage`, `21 pipe`, `22 protocol`, `23 timeout`.
+The native probe accepts both `serve --pipe <name> --once` and
+`connect --pipe <name> --role <role> [--require <capability>]`. In server mode
+it accepts exactly one connection, decodes exactly one hello, writes welcome or
+reject, emits one JSON diagnostic line to stderr on failure, and returns stable
+exit codes: `0 success`, `20 usage`, `21 pipe`, `22 protocol`, `23 timeout`.
+In client mode it sends one hello, prints the single welcome/reject summary,
+and returns the same exit-code categories.
 
-The managed probe accepts `connect --pipe <name> --role <role> [--require
-<capability>]`, sends its actual .NET/toolchain identity, prints the single
-welcome/reject summary, and returns the same exit-code categories. Neither
-probe contains test-only branches.
+The managed probe accepts both `connect --pipe <name> --role <role> [--require
+<capability>]` and `serve --pipe <name> --once`. In client mode it sends its
+actual .NET/toolchain identity, prints the single welcome/reject summary, and
+returns the same exit-code categories. In server mode it accepts exactly one
+connection, decodes exactly one hello, writes welcome or reject, emits one JSON
+diagnostic line to stderr on failure, and returns the same exit-code
+categories. Neither probe contains test-only branches.
 
 - [ ] **Step 3: Add positive and negative black-box tests**
 

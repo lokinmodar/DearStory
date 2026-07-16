@@ -5,6 +5,7 @@ add_executable(
     dearstory-protocol-cpp-tests
     codec_tests.cpp
     framing_tests.cpp
+    handshake_tests.cpp
     test_vectors.cpp
     version_tests.cpp)
 
