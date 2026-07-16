@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/protocol/" />
+  <Folder Name="/src/protocol/dotnet/">
+    <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/DearStory.ProtocolGenerator/DearStory.ProtocolGenerator.csproj" />
+    <Project Path="tools/DearStory.ProtocolProbe.DotNet/DearStory.ProtocolProbe.DotNet.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/contract/" />
+  <Folder Name="/tests/contract/protocol/">
+    <Project Path="tests/contract/protocol/DearStory.Protocol.ContractTests/DearStory.Protocol.ContractTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/e2e/" />
+  <Folder Name="/tests/e2e/protocol/">
+    <Project Path="tests/e2e/protocol/DearStory.Protocol.E2ETests/DearStory.Protocol.E2ETests.csproj" />
+  </Folder>
+  <Folder Name="/tests/integration/" />
+  <Folder Name="/tests/integration/protocol/">
+    <Project Path="tests/integration/protocol/DearStory.Protocol.IntegrationTests/DearStory.Protocol.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/" />
+  <Folder Name="/tests/unit/protocol/" />
+  <Folder Name="/tests/unit/protocol/dotnet/">
+    <Project Path="tests/unit/protocol/dotnet/DearStory.Protocol.Tests/DearStory.Protocol.Tests.csproj" />
+    <Project Path="tests/unit/protocol/dotnet/DearStory.ProtocolGenerator.Tests/DearStory.ProtocolGenerator.Tests.csproj" />
+  </Folder>
+</Solution>

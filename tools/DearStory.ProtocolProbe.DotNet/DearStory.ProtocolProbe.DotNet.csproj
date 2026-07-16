@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>DearStory.ProtocolProbe.DotNet</AssemblyName>
+    <RootNamespace>DearStory.ProtocolProbe.DotNet</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
+  </ItemGroup>
+</Project>

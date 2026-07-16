@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dearstory.dev/schema/control-envelope-v1.json",
+  "title": "DearStory Control Envelope",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "messageId",
+    "timestamp",
+    "payload"
+  ],
+  "properties": {
+    "protocol": {
+      "$ref": "#/$defs/protocol_version"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "welcome",
+        "reject"
+      ]
+    },
+    "messageId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sessionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "oneOf": [
+    {
+      "properties": {
+        "type": {
+          "const": "hello"
+        },
+        "payload": {
+          "$ref": "#/$defs/hello_payload"
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "welcome"
+        },
+        "payload": {
+          "$ref": "#/$defs/welcome_payload"
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "reject"
+        },
+        "payload": {
+          "$ref": "#/$defs/reject_payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "protocol_version": {
+      "type": "object",
+      "required": [
+        "major",
+        "minor"
+      ],
+      "properties": {
+        "major": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "additionalProperties": false
+    },
+    "implementation_identity": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "language",
+        "toolchain"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "toolchain": {
+          "type": "string"
+        },
+        "binding": {
+          "type": "string"
+        },
+        "dearImGuiVersion": {
+          "type": "string"
+        },
+        "dearImGuiIdentity": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "protocol_error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "recovery"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "protocol.major_mismatch",
+            "protocol.required_capability_missing",
+            "protocol.unknown_message_type",
+            "protocol.invalid_envelope",
+            "protocol.frame_too_large"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "recovery": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "hello_payload": {
+      "type": "object",
+      "required": [
+        "role",
+        "implementation",
+        "supportedCapabilities",
+        "requiredCapabilities"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "runner",
+            "catalog",
+            "host"
+          ]
+        },
+        "implementation": {
+          "$ref": "#/$defs/implementation_identity"
+        },
+        "supportedCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "welcome_payload": {
+      "type": "object",
+      "required": [
+        "peerId",
+        "negotiatedVersion",
+        "acceptedCapabilities"
+      ],
+      "properties": {
+        "peerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "negotiatedVersion": {
+          "$ref": "#/$defs/protocol_version"
+        },
+        "acceptedCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "reject_payload": {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/protocol_error"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,2 +1,14 @@
 .worktrees/
 .superpowers/
+.vs/
+.vscode/
+artifacts/
+build/
+TestResults/
+coverage/
+!tests/coverage/
+!tests/coverage/*.xml
+.cache/
+bin/
+obj/
+*.user

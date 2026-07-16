@@ -1,0 +1,27 @@
+{
+  "protocol": {
+    "major": 1,
+    "minor": 0
+  },
+  "type": "hello",
+  "messageId": "11111111-1111-4111-8111-111111111111",
+  "timestamp": "2026-07-15T12:00:00.000Z",
+  "payload": {
+    "role": "host",
+    "implementation": {
+      "name": "DearStory.ProtocolProbe.DotNet",
+      "version": "0.1.0",
+      "language": "csharp",
+      "toolchain": ".NET 10.0",
+      "binding": "ImGui.NET 1.91.6.1",
+      "dearImGuiVersion": "1.91.6",
+      "dearImGuiIdentity": "ImGui.NET/ImGui.NET@8e26803be78b344fd68834817905405b3cdffb94"
+    },
+    "supportedCapabilities": [
+      "control.handshake.v1"
+    ],
+    "requiredCapabilities": [
+      "control.handshake.v1"
+    ]
+  }
+}

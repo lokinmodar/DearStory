@@ -18,6 +18,11 @@ The approved architecture is documented in
 The first execution-ready plan is the
 [cross-language protocol bootstrap](docs/superpowers/plans/2026-07-15-dearstory-protocol-bootstrap.md).
 
+Current implementation rationale and repository policy are tracked in:
+
+- [protocol bootstrap architecture](docs/architecture/protocol-bootstrap.md)
+- [documentation and quality policy](docs/standards/documentation-and-quality.md)
+
 ## Direction
 
 - Windows-first, with Linux and macOS tracked as explicit backlog work.

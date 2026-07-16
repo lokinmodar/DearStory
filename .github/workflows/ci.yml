@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - feature/**
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.cache\vcpkg\archives
+      NUGET_PACKAGES: ${{ github.workspace }}\.cache\nuget\packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+
+      - name: Prepare vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
+          git -C $env:VCPKG_ROOT checkout 1db84273378ff8e2d30e7bc7fdd5d1cb4f4260fc
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force -Path .\artifacts\logs, .\artifacts\coverage, .\artifacts\docs | Out-Null
+
+      - name: Doctor
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\doctor.ps1
+
+      - name: Check generated protocol sources
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\generate-protocol.ps1 -Check
+
+      - name: Install coverage and docs tooling
+        shell: pwsh
+        run: |
+          choco install opencppcoverage --version=0.9.9 --yes --no-progress
+          choco install doxygen.install --version=1.17.0 --yes --no-progress
+
+      - name: Build
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\build.ps1 -Configuration Release
+
+      - name: Test and collect coverage
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\test.ps1 -Configuration Release -Coverage
+
+      - name: Generate C++ API docs
+        shell: pwsh
+        run: doxygen .\Doxyfile
+
+      - name: Save vcpkg binary cache
+        if: always()
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: windows-artifacts
+          path: |
+            .\artifacts\logs
+            .\artifacts\coverage
+            .\artifacts\docs
+            .\TestResults
+          if-no-files-found: warn
