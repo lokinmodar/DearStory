@@ -1,19 +1,29 @@
 find_package(Catch2 CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 add_executable(
     dearstory-protocol-cpp-tests
+    codec_tests.cpp
+    framing_tests.cpp
+    test_vectors.cpp
     version_tests.cpp)
 
 target_link_libraries(
     dearstory-protocol-cpp-tests
     PRIVATE
         Catch2::Catch2WithMain
-        DearStory::ProtocolCpp)
+        DearStory::ProtocolCpp
+        nlohmann_json::nlohmann_json)
 
 set_target_properties(
     dearstory-protocol-cpp-tests
     PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/artifacts/bin/native/$<CONFIG>")
+
+target_compile_definitions(
+    dearstory-protocol-cpp-tests
+    PRIVATE
+        DEARSTORY_REPOSITORY_ROOT="${CMAKE_SOURCE_DIR}")
 
 include(Catch)
 catch_discover_tests(dearstory-protocol-cpp-tests)
