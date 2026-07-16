@@ -1,5 +1,9 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/core/" />
+  <Folder Name="/src/core/dotnet/">
+    <Project Path="src/core/dotnet/DearStory.Core/DearStory.Core.csproj" />
+  </Folder>
   <Folder Name="/src/protocol/" />
   <Folder Name="/src/protocol/dotnet/">
     <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
@@ -22,6 +26,10 @@
     <Project Path="tests/integration/protocol/DearStory.Protocol.IntegrationTests/DearStory.Protocol.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/" />
+  <Folder Name="/tests/unit/core/" />
+  <Folder Name="/tests/unit/core/dotnet/">
+    <Project Path="tests/unit/core/dotnet/DearStory.Core.Tests/DearStory.Core.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/protocol/" />
   <Folder Name="/tests/unit/protocol/dotnet/">
     <Project Path="tests/unit/protocol/dotnet/DearStory.Protocol.Tests/DearStory.Protocol.Tests.csproj" />
