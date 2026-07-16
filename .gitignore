@@ -7,4 +7,6 @@ build/
 TestResults/
 coverage/
 .cache/
+bin/
+obj/
 *.user

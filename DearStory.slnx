@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/protocol/" />
+  <Folder Name="/src/protocol/dotnet/">
+    <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/unit/" />
+  <Folder Name="/tests/unit/protocol/" />
+  <Folder Name="/tests/unit/protocol/dotnet/">
+    <Project Path="tests/unit/protocol/dotnet/DearStory.Protocol.Tests/DearStory.Protocol.Tests.csproj" />
+  </Folder>
+</Solution>
