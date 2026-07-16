@@ -23,6 +23,46 @@ public enum PeerRole
     Host,
 }
 
+/// <summary>Represents the "action_event" generated model.</summary>
+public sealed record ActionEvent
+{
+    /// <summary>Gets or sets the value mapped from the "emittedAt" wire field.</summary>
+    [JsonPropertyName("emittedAt")]
+    public required string EmittedAt { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "name" wire field.</summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "payload" wire field.</summary>
+    [JsonPropertyName("payload")]
+    public required JsonNode Payload { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "targetId" wire field.</summary>
+    [JsonPropertyName("targetId")]
+    public string? TargetId { get; init; }
+}
+
+/// <summary>Represents the "field_diagnostic" generated model.</summary>
+public sealed record FieldDiagnostic
+{
+    /// <summary>Gets or sets the value mapped from the "code" wire field.</summary>
+    [JsonPropertyName("code")]
+    public required string Code { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "field" wire field.</summary>
+    [JsonPropertyName("field")]
+    public required string Field { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "message" wire field.</summary>
+    [JsonPropertyName("message")]
+    public required string Message { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "recovery" wire field.</summary>
+    [JsonPropertyName("recovery")]
+    public string? Recovery { get; init; }
+}
+
 /// <summary>Represents the "implementation_identity" generated model.</summary>
 public sealed record ImplementationIdentity
 {
@@ -53,6 +93,26 @@ public sealed record ImplementationIdentity
     /// <summary>Gets or sets the value mapped from the "version" wire field.</summary>
     [JsonPropertyName("version")]
     public required string Version { get; init; }
+}
+
+/// <summary>Represents the "log_event" generated model.</summary>
+public sealed record LogEvent
+{
+    /// <summary>Gets or sets the value mapped from the "details" wire field.</summary>
+    [JsonPropertyName("details")]
+    public JsonNode? Details { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "emittedAt" wire field.</summary>
+    [JsonPropertyName("emittedAt")]
+    public required string EmittedAt { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "level" wire field.</summary>
+    [JsonPropertyName("level")]
+    public required string Level { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "message" wire field.</summary>
+    [JsonPropertyName("message")]
+    public required string Message { get; init; }
 }
 
 /// <summary>Represents the "protocol_error" generated model.</summary>
@@ -87,6 +147,138 @@ public sealed record ProtocolVersion
     public required ushort Minor { get; init; }
 }
 
+/// <summary>Represents the "semantic_metadata" generated model.</summary>
+public sealed record SemanticMetadata
+{
+    /// <summary>Gets or sets the value mapped from the "accessibleName" wire field.</summary>
+    [JsonPropertyName("accessibleName")]
+    public string? AccessibleName { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "description" wire field.</summary>
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "role" wire field.</summary>
+    [JsonPropertyName("role")]
+    public string? Role { get; init; }
+}
+
+/// <summary>Represents the "story_argument_schema" generated model.</summary>
+public sealed record StoryArgumentSchema
+{
+    /// <summary>Gets or sets the value mapped from the "dialect" wire field.</summary>
+    [JsonPropertyName("dialect")]
+    public required string Dialect { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "schema" wire field.</summary>
+    [JsonPropertyName("schema")]
+    public required JsonNode Schema { get; init; }
+}
+
+/// <summary>Represents the "story_descriptor" generated model.</summary>
+public sealed record StoryDescriptor
+{
+    /// <summary>Gets or sets the value mapped from the "argumentSchema" wire field.</summary>
+    [JsonPropertyName("argumentSchema")]
+    public required StoryArgumentSchema ArgumentSchema { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "capabilities" wire field.</summary>
+    [JsonPropertyName("capabilities")]
+    public required IReadOnlyList<string> Capabilities { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "defaultArguments" wire field.</summary>
+    [JsonPropertyName("defaultArguments")]
+    public required JsonNode DefaultArguments { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "description" wire field.</summary>
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "hierarchy" wire field.</summary>
+    [JsonPropertyName("hierarchy")]
+    public required IReadOnlyList<string> Hierarchy { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "id" wire field.</summary>
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sourcePath" wire field.</summary>
+    [JsonPropertyName("sourcePath")]
+    public string? SourcePath { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "tags" wire field.</summary>
+    [JsonPropertyName("tags")]
+    public required IReadOnlyList<string> Tags { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "title" wire field.</summary>
+    [JsonPropertyName("title")]
+    public required string Title { get; init; }
+}
+
+/// <summary>Represents the "story_target" generated model.</summary>
+public sealed record StoryTarget
+{
+    /// <summary>Gets or sets the value mapped from the "bounds" wire field.</summary>
+    [JsonPropertyName("bounds")]
+    public JsonNode? Bounds { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "id" wire field.</summary>
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "semantic" wire field.</summary>
+    [JsonPropertyName("semantic")]
+    public SemanticMetadata? Semantic { get; init; }
+}
+
+/// <summary>Represents the "action_emitted" generated model.</summary>
+public sealed record ActionEmitted
+{
+    /// <summary>Gets or sets the value mapped from the "action" wire field.</summary>
+    [JsonPropertyName("action")]
+    public required ActionEvent Action { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "storyId" wire field.</summary>
+    [JsonPropertyName("storyId")]
+    public required string StoryId { get; init; }
+}
+
+/// <summary>Represents the "argument_patch" generated model.</summary>
+public sealed record ArgumentPatch
+{
+    /// <summary>Gets or sets the value mapped from the "patch" wire field.</summary>
+    [JsonPropertyName("patch")]
+    public required JsonNode Patch { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+}
+
+/// <summary>Represents the "argument_patch_result" generated model.</summary>
+public sealed record ArgumentPatchResult
+{
+    /// <summary>Gets or sets the value mapped from the "accepted" wire field.</summary>
+    [JsonPropertyName("accepted")]
+    public required bool Accepted { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "diagnostics" wire field.</summary>
+    [JsonPropertyName("diagnostics")]
+    public required IReadOnlyList<FieldDiagnostic> Diagnostics { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "updatedArguments" wire field.</summary>
+    [JsonPropertyName("updatedArguments")]
+    public required JsonNode UpdatedArguments { get; init; }
+}
+
 /// <summary>Represents the "hello" generated model.</summary>
 public sealed record Hello
 {
@@ -107,12 +299,140 @@ public sealed record Hello
     public required IReadOnlyList<string> SupportedCapabilities { get; init; }
 }
 
+/// <summary>Represents the "log_emitted" generated model.</summary>
+public sealed record LogEmitted
+{
+    /// <summary>Gets or sets the value mapped from the "log" wire field.</summary>
+    [JsonPropertyName("log")]
+    public required LogEvent Log { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "storyId" wire field.</summary>
+    [JsonPropertyName("storyId")]
+    public required string StoryId { get; init; }
+}
+
 /// <summary>Represents the "reject" generated model.</summary>
 public sealed record Reject
 {
     /// <summary>Gets or sets the value mapped from the "error" wire field.</summary>
     [JsonPropertyName("error")]
     public required ProtocolError Error { get; init; }
+}
+
+/// <summary>Represents the "story_index_published" generated model.</summary>
+public sealed record StoryIndexPublished
+{
+    /// <summary>Gets or sets the value mapped from the "hostId" wire field.</summary>
+    [JsonPropertyName("hostId")]
+    public required string HostId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "stories" wire field.</summary>
+    [JsonPropertyName("stories")]
+    public required IReadOnlyList<StoryDescriptor> Stories { get; init; }
+}
+
+/// <summary>Represents the "story_session_closed" generated model.</summary>
+public sealed record StorySessionClosed
+{
+    /// <summary>Gets or sets the value mapped from the "reason" wire field.</summary>
+    [JsonPropertyName("reason")]
+    public string? Reason { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "storyId" wire field.</summary>
+    [JsonPropertyName("storyId")]
+    public required string StoryId { get; init; }
+}
+
+/// <summary>Represents the "story_session_open" generated model.</summary>
+public sealed record StorySessionOpen
+{
+    /// <summary>Gets or sets the value mapped from the "initialArguments" wire field.</summary>
+    [JsonPropertyName("initialArguments")]
+    public required JsonNode InitialArguments { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "randomSeed" wire field.</summary>
+    [JsonPropertyName("randomSeed")]
+    public required string RandomSeed { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "startTimeUtc" wire field.</summary>
+    [JsonPropertyName("startTimeUtc")]
+    public required string StartTimeUtc { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "storyId" wire field.</summary>
+    [JsonPropertyName("storyId")]
+    public required string StoryId { get; init; }
+}
+
+/// <summary>Represents the "story_session_opened" generated model.</summary>
+public sealed record StorySessionOpened
+{
+    /// <summary>Gets or sets the value mapped from the "activeArguments" wire field.</summary>
+    [JsonPropertyName("activeArguments")]
+    public required JsonNode ActiveArguments { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "randomSeed" wire field.</summary>
+    [JsonPropertyName("randomSeed")]
+    public required string RandomSeed { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "startTimeUtc" wire field.</summary>
+    [JsonPropertyName("startTimeUtc")]
+    public required string StartTimeUtc { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "storyId" wire field.</summary>
+    [JsonPropertyName("storyId")]
+    public required string StoryId { get; init; }
+}
+
+/// <summary>Represents the "story_session_reset" generated model.</summary>
+public sealed record StorySessionReset
+{
+    /// <summary>Gets or sets the value mapped from the "arguments" wire field.</summary>
+    [JsonPropertyName("arguments")]
+    public required JsonNode Arguments { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "randomSeed" wire field.</summary>
+    [JsonPropertyName("randomSeed")]
+    public required string RandomSeed { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "startTimeUtc" wire field.</summary>
+    [JsonPropertyName("startTimeUtc")]
+    public required string StartTimeUtc { get; init; }
+}
+
+/// <summary>Represents the "target_snapshot" generated model.</summary>
+public sealed record TargetSnapshot
+{
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "storyId" wire field.</summary>
+    [JsonPropertyName("storyId")]
+    public required string StoryId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "targets" wire field.</summary>
+    [JsonPropertyName("targets")]
+    public required IReadOnlyList<StoryTarget> Targets { get; init; }
 }
 
 /// <summary>Represents the "welcome" generated model.</summary>

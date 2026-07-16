@@ -1,0 +1,45 @@
+{
+  "protocol": {
+    "major": 1,
+    "minor": 0
+  },
+  "type": "story_index_published",
+  "messageId": "55555555-5555-4555-8555-555555555555",
+  "timestamp": "2026-07-16T09:00:00.000Z",
+  "payload": {
+    "hostId": "dotnet-host",
+    "stories": [
+      {
+        "id": "buttons/primary",
+        "title": "Buttons/Primary",
+        "hierarchy": [
+          "Buttons"
+        ],
+        "tags": [
+          "controls",
+          "docs"
+        ],
+        "description": "Shows the primary button story.",
+        "sourcePath": "stories/buttons/primary.cs",
+        "argumentSchema": {
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "defaultArguments": {
+          "label": "Save"
+        },
+        "capabilities": [
+          "args.patch.v1",
+          "targets.snapshot.v1"
+        ]
+      }
+    ]
+  }
+}

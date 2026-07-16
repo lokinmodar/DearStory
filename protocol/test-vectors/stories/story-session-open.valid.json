@@ -1,0 +1,19 @@
+{
+  "protocol": {
+    "major": 1,
+    "minor": 0
+  },
+  "type": "story_session_open",
+  "messageId": "66666666-6666-4666-8666-666666666666",
+  "sessionId": "77777777-7777-4777-8777-777777777777",
+  "timestamp": "2026-07-16T09:01:00.000Z",
+  "payload": {
+    "sessionId": "77777777-7777-4777-8777-777777777777",
+    "storyId": "buttons/primary",
+    "initialArguments": {
+      "label": "Save"
+    },
+    "randomSeed": "123456789",
+    "startTimeUtc": "2026-07-16T09:01:00.000Z"
+  }
+}

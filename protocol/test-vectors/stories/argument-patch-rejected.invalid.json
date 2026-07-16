@@ -1,0 +1,26 @@
+{
+  "protocol": {
+    "major": 1,
+    "minor": 0
+  },
+  "type": "argument_patch_result",
+  "messageId": "88888888-8888-4888-8888-888888888888",
+  "correlationId": "99999999-9999-4999-8999-999999999999",
+  "sessionId": "77777777-7777-4777-8777-777777777777",
+  "timestamp": "2026-07-16T09:02:00.000Z",
+  "payload": {
+    "sessionId": "77777777-7777-4777-8777-777777777777",
+    "accepted": false,
+    "updatedArguments": {
+      "size": "medium"
+    },
+    "diagnostics": [
+      {
+        "field": "size",
+        "code": "args.enum",
+        "message": "The value must be one of the declared enum members.",
+        "recovery": "Retry with small, medium, or large."
+      }
+    ]
+  }
+}

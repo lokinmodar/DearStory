@@ -93,6 +93,186 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "story_argument_schema",
+      "fields": [
+        {
+          "name": "dialect",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "schema",
+          "type": "json",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "story_descriptor",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hierarchy",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "tags",
+          "type": "string[]",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sourcePath",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "argumentSchema",
+          "type": "story_argument_schema",
+          "required": true
+        },
+        {
+          "name": "defaultArguments",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "capabilities",
+          "type": "string[]",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "semantic_metadata",
+      "fields": [
+        {
+          "name": "role",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "accessibleName",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "story_target",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "bounds",
+          "type": "json",
+          "required": false
+        },
+        {
+          "name": "semantic",
+          "type": "semantic_metadata",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "action_event",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "payload",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "emittedAt",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "targetId",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "log_event",
+      "fields": [
+        {
+          "name": "level",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "emittedAt",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "details",
+          "type": "json",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "field_diagnostic",
+      "fields": [
+        {
+          "name": "field",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "recovery",
+          "type": "string",
+          "required": false
+        }
+      ]
     }
   ],
   "messages": [
@@ -147,6 +327,226 @@
         {
           "name": "error",
           "type": "protocol_error",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "story_index_published",
+      "fields": [
+        {
+          "name": "hostId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "stories",
+          "type": "story_descriptor[]",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "story_session_open",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "storyId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "initialArguments",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "randomSeed",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "startTimeUtc",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "story_session_opened",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "storyId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "activeArguments",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "randomSeed",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "startTimeUtc",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "story_session_reset",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "arguments",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "randomSeed",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "startTimeUtc",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "story_session_closed",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "storyId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "argument_patch",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "patch",
+          "type": "json",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "argument_patch_result",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "accepted",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "updatedArguments",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "diagnostics",
+          "type": "field_diagnostic[]",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "action_emitted",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "storyId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "action",
+          "type": "action_event",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "log_emitted",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "storyId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "log",
+          "type": "log_event",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "target_snapshot",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "storyId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "targets",
+          "type": "story_target[]",
           "required": true
         }
       ]

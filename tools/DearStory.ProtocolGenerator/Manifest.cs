@@ -57,10 +57,11 @@ public sealed class ProtocolManifest
             var knownTypes = new HashSet<string>(StringComparer.Ordinal)
             {
                 "string",
-                "string[]",
                 "uint16",
                 "uuid",
-                "object"
+                "object",
+                "boolean",
+                "json"
             };
 
             foreach (var enumDefinition in enums)
@@ -247,7 +248,11 @@ public sealed class ProtocolManifest
     {
         foreach (var field in fields)
         {
-            if (!knownTypes.Contains(field.Type))
+            var typeName = field.Type.EndsWith("[]", StringComparison.Ordinal)
+                ? field.Type[..^2]
+                : field.Type;
+
+            if (!knownTypes.Contains(typeName))
             {
                 throw new ManifestException("manifest.unknown_type", $"The manifest references the unsupported field type '{field.Type}'.");
             }
