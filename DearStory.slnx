@@ -4,6 +4,9 @@
   <Folder Name="/src/protocol/dotnet/">
     <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/DearStory.ProtocolGenerator/DearStory.ProtocolGenerator.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/contract/" />
   <Folder Name="/tests/contract/protocol/">
@@ -13,5 +16,6 @@
   <Folder Name="/tests/unit/protocol/" />
   <Folder Name="/tests/unit/protocol/dotnet/">
     <Project Path="tests/unit/protocol/dotnet/DearStory.Protocol.Tests/DearStory.Protocol.Tests.csproj" />
+    <Project Path="tests/unit/protocol/dotnet/DearStory.ProtocolGenerator.Tests/DearStory.ProtocolGenerator.Tests.csproj" />
   </Folder>
 </Solution>
