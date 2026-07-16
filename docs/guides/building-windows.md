@@ -11,4 +11,6 @@ DearStory is a Windows-first repository. Prepare these native prerequisites befo
 
 Run `pwsh -NoProfile -File .\eng\doctor.ps1 -Json` from a clean checkout to inspect the current machine state before building.
 
+Use `pwsh -NoProfile -File .\eng\build.ps1 -Configuration Debug` to run the native and managed build steps, and `pwsh -NoProfile -File .\eng\test.ps1 -Configuration Debug` to run the baseline native and managed test suites.
+
 This repository never creates WSL or WSL2 for you. Any system-wide installation remains an explicit user decision.
