@@ -1,0 +1,7 @@
+function(dearstory_enable_warnings target_name)
+    if(MSVC)
+        target_compile_options(${target_name} INTERFACE /W4 /WX /permissive- /Zc:__cplusplus)
+    else()
+        target_compile_options(${target_name} INTERFACE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+endfunction()
