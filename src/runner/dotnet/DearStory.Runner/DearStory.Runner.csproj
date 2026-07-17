@@ -16,6 +16,5 @@
     <ProjectReference Include="..\..\..\docs\dotnet\DearStory.Docs\DearStory.Docs.csproj" />
     <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
     <ProjectReference Include="..\..\..\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
-    <ProjectReference Include="..\..\..\..\tools\DearStory.CaptureWorker\DearStory.CaptureWorker.csproj" />
   </ItemGroup>
 </Project>
