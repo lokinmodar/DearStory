@@ -60,6 +60,21 @@ jobs:
         run: |
           choco install opencppcoverage --version=0.9.9 --yes --no-progress
           choco install doxygen.install --version=1.17.0 --yes --no-progress
+          $doxygenCandidates = @(
+            'C:\Program Files\doxygen\bin\doxygen.exe',
+            'C:\Program Files\Doxygen\bin\doxygen.exe',
+            'C:\Program Files (x86)\doxygen\bin\doxygen.exe',
+            'C:\Program Files (x86)\Doxygen\bin\doxygen.exe'
+          )
+          $doxygenExecutable = $doxygenCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $doxygenExecutable) {
+            throw 'Doxygen was installed but doxygen.exe was not found in the expected install locations.'
+          }
+
+          $doxygenDirectory = Split-Path -Path $doxygenExecutable -Parent
+          $doxygenDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "DEARSTORY_DOXYGEN=$doxygenExecutable" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & $doxygenExecutable --version
 
       - name: Build
         shell: pwsh
@@ -71,7 +86,7 @@ jobs:
 
       - name: Generate C++ API docs
         shell: pwsh
-        run: doxygen .\Doxyfile
+        run: & $env:DEARSTORY_DOXYGEN .\Doxyfile
 
       - name: Check whitespace and conflict markers
         shell: pwsh
