@@ -86,7 +86,8 @@ jobs:
 
       - name: Generate C++ API docs
         shell: pwsh
-        run: & $env:DEARSTORY_DOXYGEN .\Doxyfile
+        run: |
+          & $env:DEARSTORY_DOXYGEN .\Doxyfile
 
       - name: Check whitespace and conflict markers
         shell: pwsh
