@@ -12,7 +12,7 @@ public static class ButtonsPrimary
     /// Renders the managed primary-button story through ImGui.NET.
     /// </summary>
     /// <param name="context">The active DearStory story context.</param>
-    [Story("Buttons/PrimaryManaged", typeof(ButtonsPrimaryArgs))]
+    [Story("Buttons/PrimaryManaged", typeof(ButtonsPrimaryArgs), IncludeInCanonicalCorpus = true)]
     public static void Render(StoryContext context)
     {
         var label = context.Args["label"]?.GetValue<string>() ?? "Save";

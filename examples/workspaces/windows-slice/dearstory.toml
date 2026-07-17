@@ -4,6 +4,16 @@ name = "windows-slice"
 [catalog]
 theme = "dark"
 
+[visual]
+
+[[visual.overrides]]
+story = "buttons/primary"
+include_in_canonical_corpus = true
+
+[[visual.overrides]]
+story = "buttons/primarymanaged"
+include_in_canonical_corpus = true
+
 [[hosts]]
 id = "cpp-host"
 builder = "cmake"

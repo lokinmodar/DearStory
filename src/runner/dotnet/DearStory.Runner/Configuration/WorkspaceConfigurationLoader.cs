@@ -73,10 +73,35 @@ public static class WorkspaceConfigurationLoader
             ? new CatalogConfiguration(GetOptionalString(catalogTable, "theme") ?? "dark")
             : new CatalogConfiguration("dark");
 
+        var visual = BindVisual(root);
         var hosts = BindHosts(root);
         var docs = BindDocs(root);
 
-        return new WorkspaceConfiguration(workspace, catalog, hosts, docs);
+        return new WorkspaceConfiguration(workspace, catalog, visual, hosts, docs);
+    }
+
+    private static VisualConfiguration BindVisual(TomlTable root)
+    {
+        if (root.TryGetValue("visual", out var visualValue) is false || visualValue is not TomlTable visualTable)
+        {
+            return new VisualConfiguration(Array.Empty<VisualStoryOverride>());
+        }
+
+        if (visualTable.TryGetValue("overrides", out var overridesValue) is false || overridesValue is not TomlTableArray overridesArray)
+        {
+            return new VisualConfiguration(Array.Empty<VisualStoryOverride>());
+        }
+
+        var overrides = new List<VisualStoryOverride>(overridesArray.Count);
+        foreach (var entry in overridesArray.OfType<TomlTable>())
+        {
+            overrides.Add(
+                new VisualStoryOverride(
+                    GetRequiredString(entry, "story", "[[visual.overrides]]"),
+                    GetOptionalBoolean(entry, "include_in_canonical_corpus")));
+        }
+
+        return new VisualConfiguration(overrides);
     }
 
     private static IReadOnlyList<HostConfiguration> BindHosts(TomlTable root)
@@ -167,5 +192,20 @@ public static class WorkspaceConfigurationLoader
     private static string? GetOptionalString(TomlTable table, string key)
     {
         return table.TryGetValue(key, out var value) ? value?.ToString() : null;
+    }
+
+    private static bool GetOptionalBoolean(TomlTable table, string key)
+    {
+        if (table.TryGetValue(key, out var value) is false || value is null)
+        {
+            return false;
+        }
+
+        return value switch
+        {
+            bool boolValue => boolValue,
+            _ when bool.TryParse(value.ToString(), out var boolValue) => boolValue,
+            _ => false,
+        };
     }
 }
