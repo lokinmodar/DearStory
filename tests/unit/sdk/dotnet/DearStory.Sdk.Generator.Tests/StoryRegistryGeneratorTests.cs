@@ -32,16 +32,93 @@ public sealed class StoryRegistryGeneratorTests
             }
             """;
 
-        var output = StoryRegistryGeneratorHarness.Run(source);
+        var result = StoryRegistryGeneratorHarness.Run(source);
 
-        Assert.Contains("buttons/primary", output, StringComparison.Ordinal);
-        Assert.Contains("Caption shown on the button.", output, StringComparison.Ordinal);
-        Assert.Contains("GeneratedStoryRegistry", output, StringComparison.Ordinal);
+        Assert.Contains("buttons/primary", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Caption shown on the button.", result.Output, StringComparison.Ordinal);
+        Assert.Contains("GeneratedStoryRegistry", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generator_emits_schema_defaults_for_supported_types()
+    {
+        const string source =
+            """
+            using DearStory.Sdk;
+
+            public enum ButtonTone
+            {
+                Primary,
+                Secondary,
+            }
+
+            public static class Stories
+            {
+                [Story("Buttons\\Primary", typeof(PrimaryButtonArgs))]
+                public static void PrimaryButton(StoryContext context) {}
+            }
+
+            public sealed class PrimaryButtonArgs
+            {
+                [StoryArg("disabled")]
+                public bool Disabled { get; init; } = true;
+
+                [StoryArg("count")]
+                public int Count { get; init; } = 3;
+
+                [StoryArg("ratio")]
+                public double Ratio { get; init; } = 1.5;
+
+                [StoryArg("tone")]
+                public ButtonTone Tone { get; init; } = ButtonTone.Secondary;
+            }
+            """;
+
+        var result = StoryRegistryGeneratorHarness.Run(source);
+
+        Assert.Contains("Name = \"disabled\"", result.Output, StringComparison.Ordinal);
+        Assert.Contains("JsonValue.Create(true)", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Name = \"count\"", result.Output, StringComparison.Ordinal);
+        Assert.Contains("JsonValue.Create(3)", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Name = \"ratio\"", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Name = \"tone\"", result.Output, StringComparison.Ordinal);
+        Assert.Contains("\\\"enum\\\":[\\\"Primary\\\",\\\"Secondary\\\"]", result.Output, StringComparison.Ordinal);
+        Assert.Contains(@"""Buttons""", result.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("DEARSTORYSDK001", result.Diagnostics.Select(static diagnostic => diagnostic.Id));
+    }
+
+    [Fact]
+    public void Generator_reports_duplicate_canonical_story_ids()
+    {
+        const string source =
+            """
+            using DearStory.Sdk;
+
+            public static class Stories
+            {
+                [Story("buttons/primary", typeof(PrimaryButtonArgs))]
+                public static void PrimaryButton(StoryContext context) {}
+
+                [Story("Buttons\\Primary", typeof(PrimaryButtonArgs))]
+                public static void DuplicatePrimaryButton(StoryContext context) {}
+            }
+
+            public sealed class PrimaryButtonArgs
+            {
+                [StoryArg("label")]
+                public string Label { get; init; } = "Save";
+            }
+            """;
+
+        var result = StoryRegistryGeneratorHarness.Run(source, allowGeneratorErrors: true);
+
+        var duplicateDiagnostic = Assert.Single(result.Diagnostics.Where(static diagnostic => diagnostic.Id == "DEARSTORYSDK001"));
+        Assert.Equal(DiagnosticSeverity.Error, duplicateDiagnostic.Severity);
     }
 
     private static class StoryRegistryGeneratorHarness
     {
-        public static string Run(string source)
+        public static GeneratorExecutionResult Run(string source, bool allowGeneratorErrors = false)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 source,
@@ -78,10 +155,16 @@ public sealed class StoryRegistryGeneratorTests
             driver = driver.RunGenerators(compilation);
             var result = driver.GetRunResult();
 
-            Assert.Empty(result.Diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
-            return string.Join(
-                Environment.NewLine,
-                result.GeneratedTrees.Select(static tree => tree.GetText().ToString()));
+            if (!allowGeneratorErrors) {
+                Assert.Empty(result.Diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+            }
+            return new GeneratorExecutionResult(
+                string.Join(
+                    Environment.NewLine,
+                    result.GeneratedTrees.Select(static tree => tree.GetText().ToString())),
+                result.Diagnostics);
         }
     }
+
+    private sealed record GeneratorExecutionResult(string Output, ImmutableArray<Diagnostic> Diagnostics);
 }

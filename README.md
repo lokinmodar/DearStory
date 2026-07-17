@@ -9,8 +9,9 @@ one versioned protocol, one documentation model, and one conformance suite.
 
 ## Project status
 
-DearStory has an approved architecture and is entering implementation planning.
-No runtime API is stable yet.
+DearStory now has active implementation for the Windows-first protocol bootstrap
+and the shared core story model. The public API surface is still pre-1.0 and
+may change as host/runtime work continues.
 
 The approved architecture is documented in
 [`docs/superpowers/specs/2026-07-15-dearstory-design.md`](docs/superpowers/specs/2026-07-15-dearstory-design.md).
@@ -21,6 +22,8 @@ The first execution-ready plan is the
 Current implementation rationale and repository policy are tracked in:
 
 - [protocol bootstrap architecture](docs/architecture/protocol-bootstrap.md)
+- [core story model architecture](docs/architecture/core-story-model.md)
+- [story authoring guide](docs/guides/authoring-stories.md)
 - [documentation and quality policy](docs/standards/documentation-and-quality.md)
 
 ## Direction
@@ -32,6 +35,7 @@ Current implementation rationale and repository policy are tracked in:
   and visual regression tests.
 - Markdown documentation with typed Doc Blocks.
 - JSON Schema-based arguments and controls.
+- Source-generated .NET story registration with explicit reflection fallback.
 - Extensive automated tests and public API documentation from the first
   implementation milestone.
 

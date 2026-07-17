@@ -26,8 +26,14 @@ function Invoke-DearStoryCommand {
     }
 }
 
+$managedBuildProjects = @(
+    '.\src\core\dotnet\DearStory.Core\DearStory.Core.csproj',
+    '.\sdk\dotnet\DearStory.Sdk\DearStory.Sdk.csproj',
+    '.\sdk\dotnet\DearStory.Sdk.Generator\DearStory.Sdk.Generator.csproj'
+)
+
 $cmakeBuildArguments = @('--build', '--preset', 'windows-msvc-debug')
-$dotnetBuildArguments = @('build', '.\DearStory.slnx', '--no-restore', '-warnaserror')
+$dotnetBuildArguments = @('--no-restore', '-warnaserror')
 
 if ($Configuration -eq 'Release') {
     $cmakeBuildArguments += @('--config', 'Release')
@@ -37,4 +43,8 @@ if ($Configuration -eq 'Release') {
 Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--preset', 'windows-msvc-debug')
 Invoke-DearStoryCommand -Executable 'cmake' -Arguments $cmakeBuildArguments
 Invoke-DearStoryCommand -Executable 'dotnet' -Arguments @('restore', '.\DearStory.slnx', '--locked-mode')
-Invoke-DearStoryCommand -Executable 'dotnet' -Arguments $dotnetBuildArguments
+Invoke-DearStoryCommand -Executable 'dotnet' -Arguments (@('build', '.\DearStory.slnx') + $dotnetBuildArguments)
+
+foreach ($managedBuildProject in $managedBuildProjects) {
+    Invoke-DearStoryCommand -Executable 'dotnet' -Arguments (@('build', $managedBuildProject) + $dotnetBuildArguments)
+}
