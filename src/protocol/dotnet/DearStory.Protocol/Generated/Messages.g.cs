@@ -300,7 +300,7 @@ public sealed record CaptureCompleted
 
     /// <summary>Gets or sets the value mapped from the "timestampUtc" wire field.</summary>
     [JsonPropertyName("timestampUtc")]
-    public required DateTimeOffset TimestampUtc { get; init; }
+    public required string TimestampUtc { get; init; }
 
     /// <summary>Gets or sets the value mapped from the "width" wire field.</summary>
     [JsonPropertyName("width")]
@@ -376,7 +376,7 @@ public sealed record FramePresented
 
     /// <summary>Gets or sets the value mapped from the "timestampUtc" wire field.</summary>
     [JsonPropertyName("timestampUtc")]
-    public required DateTimeOffset TimestampUtc { get; init; }
+    public required string TimestampUtc { get; init; }
 }
 
 /// <summary>Represents the "heartbeat" generated model.</summary>
@@ -392,7 +392,7 @@ public sealed record Heartbeat
 
     /// <summary>Gets or sets the value mapped from the "sentAtUtc" wire field.</summary>
     [JsonPropertyName("sentAtUtc")]
-    public required DateTimeOffset SentAtUtc { get; init; }
+    public required string SentAtUtc { get; init; }
 }
 
 /// <summary>Represents the "hello" generated model.</summary>
@@ -456,7 +456,7 @@ public sealed record InputBatch
 
     /// <summary>Gets or sets the value mapped from the "timestampUtc" wire field.</summary>
     [JsonPropertyName("timestampUtc")]
-    public required DateTimeOffset TimestampUtc { get; init; }
+    public required string TimestampUtc { get; init; }
 }
 
 /// <summary>Represents the "log_emitted" generated model.</summary>

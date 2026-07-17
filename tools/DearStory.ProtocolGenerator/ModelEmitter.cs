@@ -200,7 +200,7 @@ public static class ModelEmitter
             "int32" => "int",
             "int64" => "long",
             "uuid" => "Guid",
-            "timestamp" => "DateTimeOffset",
+            "timestamp" => "string",
             "object" => "JsonObject",
             "boolean" => "bool",
             "json" => "JsonNode",

@@ -64,7 +64,8 @@ public sealed class ModelEmitterTests
         Assert.Contains("public required JsonNode UpdatedArguments { get; init; }", first.CSharp, StringComparison.Ordinal);
         Assert.Contains("public required int SlotCount { get; init; }", first.CSharp, StringComparison.Ordinal);
         Assert.Contains("public required long Sequence { get; init; }", first.CSharp, StringComparison.Ordinal);
-        Assert.Contains("public required DateTimeOffset TimestampUtc { get; init; }", first.CSharp, StringComparison.Ordinal);
+        Assert.Contains("public required string TimestampUtc { get; init; }", first.CSharp, StringComparison.Ordinal);
+        Assert.DoesNotContain("DateTimeOffset TimestampUtc", first.CSharp, StringComparison.Ordinal);
         Assert.DoesNotContain("DateTime.Now", first.CSharp, StringComparison.Ordinal);
     }
 
