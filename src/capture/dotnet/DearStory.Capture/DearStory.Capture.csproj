@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Capture</AssemblyName>
+    <RootNamespace>DearStory.Capture</RootNamespace>
+  </PropertyGroup>
+</Project>
