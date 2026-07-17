@@ -61,7 +61,7 @@ TEST_CASE("sdk_story_registry produces a canonical descriptor without wrapping I
     REQUIRE(registrations.front().arguments().default_arguments().at("label") == "Save");
 }
 
-TEST_CASE("sdk_story_registration keeps explicit canonical visual enrollment")
+TEST_CASE("sdk_story_registry keeps explicit canonical visual enrollment")
 {
     auto registration = dearstory::sdk::story_registration::create(
         "buttons/primary",

@@ -42,3 +42,27 @@ Observed result:
 ## Concern
 
 The required CTest filter `-R "story_registry"` does not match the new test name `sdk_story_registration keeps explicit canonical visual enrollment`, so the requested verification slice stays green without exercising the new regression test. The binary was rebuilt successfully, but the constrained verification command does not cover the newly added case.
+
+## Updated verification after test-name alignment
+
+- Renamed the new Catch2 case to `sdk_story_registry keeps explicit canonical visual enrollment` so it is included by the required `-R "story_registry"` filter.
+
+Rebuild command rerun:
+
+```powershell
+cmake --build .\build\windows-msvc-debug --config Release --target dearstory-sdk-cpp-tests
+```
+
+Verification command rerun:
+
+```powershell
+ctest --test-dir .\build\windows-msvc-debug -C Release -R "story_registry" --output-on-failure
+```
+
+Updated observed result:
+
+- Exit code: `0`
+- Reported tests: `2/2`
+- Passing tests:
+  - `sdk_story_registry produces a canonical descriptor without wrapping ImGui`
+  - `sdk_story_registry keeps explicit canonical visual enrollment`
