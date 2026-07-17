@@ -18,6 +18,7 @@ jobs:
   windows:
     runs-on: windows-2022
     env:
+      DEARSTORY_VISUAL_BACKEND: warp
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.cache\vcpkg\archives
       NUGET_PACKAGES: ${{ github.workspace }}\.cache\nuget\packages
@@ -84,6 +85,10 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -File .\eng\test.ps1 -Configuration Release -Coverage
 
+      - name: Validate canonical baselines
+        shell: pwsh
+        run: dotnet run --project .\src\runner\dotnet\DearStory.Runner\DearStory.Runner.csproj -- build .\examples\workspaces\windows-slice --configuration Release --visual-backend warp --canonical-only
+
       - name: Generate C++ API docs
         shell: pwsh
         run: |
@@ -109,6 +114,7 @@ jobs:
             .\artifacts\logs
             .\artifacts\coverage
             .\artifacts\docs
+            tests/visual/windows/baselines
             .\tests\visual\windows
             .\TestResults
           if-no-files-found: warn

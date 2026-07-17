@@ -1,8 +1,11 @@
 # Windows visual artifacts
 
-This directory is reserved for deterministic visual-baseline artifacts produced
-by the Windows slice.
+Only reviewed canonical baselines belong in this directory.
 
-The current baseline keeps generated documentation screenshots under
-`artifacts/docs`, but CI already uploads this directory so future reviewed
-baselines and diffs have a stable home.
+- `baselines/buttons/primary.png`
+- `baselines/buttons/primarymanaged.png`
+
+Experimental actual, diff, and manifest files stay outside the repository
+unless a reviewer explicitly asks to check them in.
+
+Canonical output is WARP-only.

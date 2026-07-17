@@ -134,6 +134,53 @@ public sealed class CapturePolicyTests
         }
     }
 
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task ExecuteAsync_approves_warp_capture_by_promoting_the_canonical_baseline()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "DearStory.Capture.Tests", Guid.NewGuid().ToString("N"));
+        var repoRoot = Path.Combine(root, "repo");
+        var workspaceRoot = Path.Combine(repoRoot, "examples", "workspaces", "windows-slice");
+        var artifactRoot = Path.Combine(root, "artifacts");
+
+        Directory.CreateDirectory(workspaceRoot);
+        Directory.CreateDirectory(artifactRoot);
+        File.WriteAllText(Path.Combine(repoRoot, "DearStory.slnx"), "<Solution />");
+
+        try
+        {
+            var cancellationToken = TestContext.Current.CancellationToken;
+            var service = new VisualCaptureService();
+            var request = new VisualCaptureRequest(
+                WorkspaceRoot: workspaceRoot,
+                StoryIds: ["buttons/primary"],
+                Backend: CaptureBackendKind.Warp,
+                CanonicalOnly: false,
+                ApproveCanonical: true,
+                ArtifactRootOverride: artifactRoot);
+
+            var results = await service.ExecuteAsync(
+                request,
+                new FakeVisualFrameSource(),
+                cancellationToken);
+
+            var result = Assert.Single(results);
+            Assert.Equal(ComparisonClassification.Match, result.Classification);
+            Assert.True(File.Exists(result.ActualImagePath));
+            Assert.True(File.Exists(result.BaselineImagePath));
+            Assert.Equal(
+                File.ReadAllBytes(result.ActualImagePath),
+                File.ReadAllBytes(result.BaselineImagePath!));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     private sealed class FakeVisualFrameSource : IVisualFrameSource
     {
         public Task<CapturedFrame> CaptureAsync(string storyId, CaptureBackendKind backend, CancellationToken cancellationToken)

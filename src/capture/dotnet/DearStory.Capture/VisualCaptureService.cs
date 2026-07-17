@@ -45,6 +45,14 @@ public sealed class VisualCaptureService
 
             WriteActualPng(artifactPaths.ActualImagePath, frame);
 
+            if (request.ApproveCanonical)
+            {
+                CaptureApprovalService.PromoteActualToBaseline(
+                    artifactPaths.ActualImagePath,
+                    artifactPaths.BaselineImagePath,
+                    request.Backend);
+            }
+
             var comparison = ImageComparer.Classify(
                 artifactPaths.ActualImagePath,
                 artifactPaths.BaselineImagePath,

@@ -35,6 +35,7 @@ $managedTestProjects = @(
     '.\tests\contract\protocol\DearStory.Protocol.ContractTests\DearStory.Protocol.ContractTests.csproj',
     '.\tests\conformance\hosts\DearStory.HostConformance.Tests\DearStory.HostConformance.Tests.csproj',
     '.\tests\unit\catalog\dotnet\DearStory.Catalog.Tests\DearStory.Catalog.Tests.csproj',
+    '.\tests\unit\capture\dotnet\DearStory.Capture.Tests\DearStory.Capture.Tests.csproj',
     '.\tests\unit\core\dotnet\DearStory.Core.Tests\DearStory.Core.Tests.csproj',
     '.\tests\contract\core\DearStory.Core.ContractTests\DearStory.Core.ContractTests.csproj',
     '.\tests\unit\docs\dotnet\DearStory.Docs.Tests\DearStory.Docs.Tests.csproj',
@@ -98,6 +99,7 @@ try {
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\Doctor.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\BuildScripts.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\CoverageGate.Tests.ps1')
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\VisualBaselineWorkflow.Tests.ps1')
 
     if (-not $Coverage) {
         return
