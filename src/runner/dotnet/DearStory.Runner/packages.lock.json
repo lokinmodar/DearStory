@@ -20,12 +20,10 @@
           "System.Drawing.Common": "[10.0.10, )"
         }
       },
-      "dearstory.captureworker": {
-        "type": "Project"
-      },
       "dearstory.catalog": {
         "type": "Project",
         "dependencies": {
+          "DearStory.Capture": "[1.0.0, )",
           "DearStory.Core": "[1.0.0, )",
           "DearStory.Protocol": "[1.0.0, )",
           "DearStory.Transport.Windows": "[1.0.0, )",

@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\capture\dotnet\DearStory.Capture\DearStory.Capture.csproj" />
     <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
     <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
     <ProjectReference Include="..\..\..\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
