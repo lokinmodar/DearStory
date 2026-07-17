@@ -44,7 +44,7 @@ internal sealed class HostHarness : IAsyncDisposable
         var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         var pipeName = $"dearstory-host-{Guid.NewGuid():N}";
         var server = new NamedPipeControlServer(pipeName);
-        var process = StartNativeHost(pipeName, hostId);
+        var process = StartHost(pipeName, hostId);
 
         try
         {
@@ -174,6 +174,14 @@ internal sealed class HostHarness : IAsyncDisposable
         _lifetime.Dispose();
     }
 
+    private static Process StartHost(string pipeName, string hostId) =>
+        hostId switch
+        {
+            "cpp-host" => StartNativeHost(pipeName, hostId),
+            "dotnet-host" => StartManagedHost(pipeName, hostId),
+            _ => throw new ArgumentOutOfRangeException(nameof(hostId), hostId, "The requested host is not supported by the conformance harness."),
+        };
+
     private static Process StartNativeHost(string pipeName, string hostId)
     {
         var repositoryRoot = ResolveRepositoryRoot();
@@ -195,6 +203,39 @@ internal sealed class HostHarness : IAsyncDisposable
 
         return Process.Start(startInfo)
             ?? throw new InvalidOperationException("The native DearStory host process could not be started.");
+    }
+
+    private static Process StartManagedHost(string pipeName, string hostId)
+    {
+        var repositoryRoot = ResolveRepositoryRoot();
+        var executablePath = Path.Combine(
+            repositoryRoot,
+            "src",
+            "hosts",
+            "dotnet",
+            "DearStory.Host",
+            "bin",
+            "Release",
+            "net10.0",
+            "DearStory.Host.exe");
+
+        if (!File.Exists(executablePath))
+        {
+            throw new FileNotFoundException("The managed DearStory host executable was not found. Build the host before running conformance tests.", executablePath);
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = executablePath,
+            Arguments = $"--pipe {pipeName} --host-id {hostId}",
+            WorkingDirectory = repositoryRoot,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false
+        };
+
+        return Process.Start(startInfo)
+            ?? throw new InvalidOperationException("The managed DearStory host process could not be started.");
     }
 
     private static async Task<ControlEnvelope> ReadHandshakeHelloAsync(NamedPipeConnection connection, CancellationToken cancellationToken)
