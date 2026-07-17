@@ -68,6 +68,16 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
             .Select(static argument => argument!)
             .OrderBy(static argument => argument.Name, StringComparer.Ordinal)
             .ToImmutableArray();
+        var includeInCanonicalCorpus = false;
+        foreach (var namedArgument in storyAttribute.NamedArguments)
+        {
+            if (namedArgument.Key == "IncludeInCanonicalCorpus" &&
+                namedArgument.Value.Value is bool value)
+            {
+                includeInCanonicalCorpus = value;
+                break;
+            }
+        }
 
         return new StoryDefinition(
             rawId,
@@ -76,6 +86,7 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
             ToHierarchy(rawId),
             XmlDocumentationReader.ReadSummary(methodSymbol.GetDocumentationCommentXml(cancellationToken: cancellationToken) ?? string.Empty),
             methodSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            includeInCanonicalCorpus,
             storyArguments);
     }
 
@@ -247,6 +258,13 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
                     .AppendLine("\",");
             }
 
+            builder.AppendLine("                        Visual = new global::DearStory.Core.StoryVisualDescriptor");
+            builder.AppendLine("                        {");
+            builder.AppendLine("                            SupportsCapture = true,");
+            builder.Append("                            IncludeInCanonicalCorpus = ")
+                .Append(story.IncludeInCanonicalCorpus ? "true" : "false")
+                .AppendLine(",");
+            builder.AppendLine("                        },");
             builder.AppendLine("                    },");
             builder.Append("                    ArgumentSchema = global::DearStory.Core.Schemas.ArgumentSchema.Parse(\"")
                 .Append(EscapeCSharp(BuildStorySchemaJson(story)))
@@ -420,6 +438,7 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
             ImmutableArray<string> hierarchy,
             string? storyDescription,
             string callbackExpression,
+            bool includeInCanonicalCorpus,
             ImmutableArray<ArgumentDefinition> arguments)
         {
             RawId = rawId;
@@ -428,6 +447,7 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
             Hierarchy = hierarchy;
             StoryDescription = storyDescription;
             CallbackExpression = callbackExpression;
+            IncludeInCanonicalCorpus = includeInCanonicalCorpus;
             Arguments = arguments;
         }
 
@@ -442,6 +462,8 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
         public string? StoryDescription { get; }
 
         public string CallbackExpression { get; }
+
+        public bool IncludeInCanonicalCorpus { get; }
 
         public ImmutableArray<ArgumentDefinition> Arguments { get; }
     }

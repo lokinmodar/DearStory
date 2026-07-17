@@ -88,6 +88,33 @@ public sealed class StoryRegistryGeneratorTests
     }
 
     [Fact]
+    public void Generator_emits_visual_metadata_for_canonical_corpus_stories()
+    {
+        const string source =
+            """
+            using DearStory.Sdk;
+
+            public static class Stories
+            {
+                [Story("buttons/primarymanaged", typeof(PrimaryButtonArgs), IncludeInCanonicalCorpus = true)]
+                public static void PrimaryButton(StoryContext context) {}
+            }
+
+            public sealed class PrimaryButtonArgs
+            {
+                [StoryArg("label")]
+                public string Label { get; init; } = "Save";
+            }
+            """;
+
+        var result = StoryRegistryGeneratorHarness.Run(source);
+
+        Assert.Contains("Visual = new global::DearStory.Core.StoryVisualDescriptor", result.Output, StringComparison.Ordinal);
+        Assert.Contains("SupportsCapture = true", result.Output, StringComparison.Ordinal);
+        Assert.Contains("IncludeInCanonicalCorpus = true", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Generator_reports_duplicate_canonical_story_ids()
     {
         const string source =
