@@ -14,6 +14,9 @@
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/contract/" />
+  <Folder Name="/tests/contract/core/">
+    <Project Path="tests/contract/core/DearStory.Core.ContractTests/DearStory.Core.ContractTests.csproj" />
+  </Folder>
   <Folder Name="/tests/contract/protocol/">
     <Project Path="tests/contract/protocol/DearStory.Protocol.ContractTests/DearStory.Protocol.ContractTests.csproj" />
   </Folder>

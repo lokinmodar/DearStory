@@ -1,0 +1,32 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "label": {
+        "type": "string",
+        "minLength": 1,
+        "default": "Save",
+        "x-dearstory-control": "text",
+        "x-dearstory-order": 1,
+        "x-dearstory-category": "Appearance",
+        "x-dearstory-visible": true
+      }
+    },
+    "required": [
+      "label"
+    ]
+  },
+  "currentArguments": {
+    "label": "Save"
+  },
+  "patch": {
+    "label": "Discard"
+  },
+  "expected": {
+    "accepted": true,
+    "updatedArguments": {
+      "label": "Discard"
+    },
+    "diagnosticCodes": []
+  }
+}

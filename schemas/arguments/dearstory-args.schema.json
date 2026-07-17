@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dearstory.dev/schemas/arguments/dearstory-args.schema.json",
+  "title": "DearStory argument schema subset",
+  "$ref": "#/$defs/schemaNode",
+  "$defs": {
+    "simpleType": {
+      "enum": [
+        "object",
+        "boolean",
+        "integer",
+        "number",
+        "string",
+        "array"
+      ]
+    },
+    "schemaNode": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/simpleType"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/schemaNode"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "enum": {
+          "type": "array"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "$ref": "#/$defs/schemaNode"
+        },
+        "default": {},
+        "x-dearstory-control": {
+          "type": "string"
+        },
+        "x-dearstory-order": {
+          "type": "integer"
+        },
+        "x-dearstory-category": {
+          "type": "string"
+        },
+        "x-dearstory-visible": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

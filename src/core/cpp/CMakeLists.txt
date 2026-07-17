@@ -2,6 +2,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(
     dearstory_core_cpp
+    src/argument_patch_validator.cpp
     src/story_id.cpp
     src/story_catalog.cpp
     src/story_session.cpp)
@@ -15,6 +16,7 @@ target_include_directories(
 target_link_libraries(
     dearstory_core_cpp
     PUBLIC
+        DearStory::ProtocolCpp
         nlohmann_json::nlohmann_json)
 
 include(${CMAKE_SOURCE_DIR}/cmake/dearstory_warnings.cmake)

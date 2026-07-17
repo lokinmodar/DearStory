@@ -3,6 +3,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 add_executable(
     dearstory-core-cpp-tests
+    argument_patch_validator_tests.cpp
     story_id_tests.cpp
     story_catalog_tests.cpp
     story_session_tests.cpp)
@@ -13,6 +14,11 @@ target_link_libraries(
         Catch2::Catch2WithMain
         DearStory::CoreCpp
         nlohmann_json::nlohmann_json)
+
+target_compile_definitions(
+    dearstory-core-cpp-tests
+    PRIVATE
+        DEARSTORY_REPOSITORY_ROOT="${CMAKE_SOURCE_DIR}")
 
 set_target_properties(
     dearstory-core-cpp-tests
