@@ -24,6 +24,8 @@ Current implementation rationale and repository policy are tracked in:
 - [protocol bootstrap architecture](docs/architecture/protocol-bootstrap.md)
 - [core story model architecture](docs/architecture/core-story-model.md)
 - [story authoring guide](docs/guides/authoring-stories.md)
+- [Windows build guide](docs/guides/building-windows.md)
+- [static docs guide](docs/guides/static-docs.md)
 - [documentation and quality policy](docs/standards/documentation-and-quality.md)
 
 ## Direction

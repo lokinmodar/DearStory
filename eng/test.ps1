@@ -33,17 +33,27 @@ $managedTestProjects = @(
     '.\tests\integration\protocol\DearStory.Protocol.IntegrationTests\DearStory.Protocol.IntegrationTests.csproj',
     '.\tests\e2e\protocol\DearStory.Protocol.E2ETests\DearStory.Protocol.E2ETests.csproj',
     '.\tests\contract\protocol\DearStory.Protocol.ContractTests\DearStory.Protocol.ContractTests.csproj',
+    '.\tests\conformance\hosts\DearStory.HostConformance.Tests\DearStory.HostConformance.Tests.csproj',
+    '.\tests\unit\catalog\dotnet\DearStory.Catalog.Tests\DearStory.Catalog.Tests.csproj',
     '.\tests\unit\core\dotnet\DearStory.Core.Tests\DearStory.Core.Tests.csproj',
     '.\tests\contract\core\DearStory.Core.ContractTests\DearStory.Core.ContractTests.csproj',
+    '.\tests\unit\docs\dotnet\DearStory.Docs.Tests\DearStory.Docs.Tests.csproj',
+    '.\tests\integration\windows\DearStory.WindowsSlice.Tests\DearStory.WindowsSlice.Tests.csproj',
+    '.\tests\e2e\windows\DearStory.WindowsSlice.E2ETests\DearStory.WindowsSlice.E2ETests.csproj',
+    '.\tests\unit\runner\dotnet\DearStory.Runner.Tests\DearStory.Runner.Tests.csproj',
     '.\tests\unit\sdk\dotnet\DearStory.Sdk.Tests\DearStory.Sdk.Tests.csproj',
     '.\tests\unit\sdk\dotnet\DearStory.Sdk.Generator.Tests\DearStory.Sdk.Generator.Tests.csproj'
 )
 
 $managedCoveragePackages = @(
+    'DearStory.Catalog',
     'DearStory.Protocol',
     'DearStory.Core',
+    'DearStory.Docs',
+    'DearStory.Runner',
     'DearStory.Sdk',
-    'DearStory.Sdk.Generator'
+    'DearStory.Sdk.Generator',
+    'DearStory.Transport.Windows'
 )
 
 $nativeCoverageSources = @(

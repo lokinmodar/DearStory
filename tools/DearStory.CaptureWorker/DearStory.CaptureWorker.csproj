@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.CaptureWorker</AssemblyName>
+    <RootNamespace>DearStory.CaptureWorker</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+</Project>

@@ -27,9 +27,14 @@ function Invoke-DearStoryCommand {
 }
 
 $managedBuildProjects = @(
+    '.\src\catalog\dotnet\DearStory.Catalog\DearStory.Catalog.csproj',
     '.\src\core\dotnet\DearStory.Core\DearStory.Core.csproj',
+    '.\src\docs\dotnet\DearStory.Docs\DearStory.Docs.csproj',
+    '.\src\runner\dotnet\DearStory.Runner\DearStory.Runner.csproj',
+    '.\src\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj',
     '.\sdk\dotnet\DearStory.Sdk\DearStory.Sdk.csproj',
-    '.\sdk\dotnet\DearStory.Sdk.Generator\DearStory.Sdk.Generator.csproj'
+    '.\sdk\dotnet\DearStory.Sdk.Generator\DearStory.Sdk.Generator.csproj',
+    '.\tools\DearStory.CaptureWorker\DearStory.CaptureWorker.csproj'
 )
 
 $cmakeBuildArguments = @('--build', '--preset', 'windows-msvc-debug')

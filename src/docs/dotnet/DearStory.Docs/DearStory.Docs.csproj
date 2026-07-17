@@ -3,4 +3,12 @@
     <AssemblyName>DearStory.Docs</AssemblyName>
     <RootNamespace>DearStory.Docs</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+  </ItemGroup>
 </Project>

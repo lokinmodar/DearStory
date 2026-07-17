@@ -34,6 +34,7 @@
     <Project Path="src/transports/dotnet/DearStory.Transport.Windows/DearStory.Transport.Windows.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/DearStory.CaptureWorker/DearStory.CaptureWorker.csproj" />
     <Project Path="tools/DearStory.ProtocolGenerator/DearStory.ProtocolGenerator.csproj" />
     <Project Path="tools/DearStory.ProtocolProbe.DotNet/DearStory.ProtocolProbe.DotNet.csproj" />
   </Folder>
@@ -49,7 +50,9 @@
   <Folder Name="/tests/e2e/protocol/">
     <Project Path="tests/e2e/protocol/DearStory.Protocol.E2ETests/DearStory.Protocol.E2ETests.csproj" />
   </Folder>
-  <Folder Name="/tests/e2e/windows/" />
+  <Folder Name="/tests/e2e/windows/">
+    <Project Path="tests/e2e/windows/DearStory.WindowsSlice.E2ETests/DearStory.WindowsSlice.E2ETests.csproj" />
+  </Folder>
   <Folder Name="/tests/integration/" />
   <Folder Name="/tests/integration/protocol/">
     <Project Path="tests/integration/protocol/DearStory.Protocol.IntegrationTests/DearStory.Protocol.IntegrationTests.csproj" />
@@ -67,7 +70,9 @@
     <Project Path="tests/unit/core/dotnet/DearStory.Core.Tests/DearStory.Core.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/docs/" />
-  <Folder Name="/tests/unit/docs/dotnet/" />
+  <Folder Name="/tests/unit/docs/dotnet/">
+    <Project Path="tests/unit/docs/dotnet/DearStory.Docs.Tests/DearStory.Docs.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/sdk/" />
   <Folder Name="/tests/unit/sdk/dotnet/">
     <Project Path="tests/unit/sdk/dotnet/DearStory.Sdk.Tests/DearStory.Sdk.Tests.csproj" />

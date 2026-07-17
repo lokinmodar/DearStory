@@ -93,5 +93,6 @@ jobs:
             .\artifacts\logs
             .\artifacts\coverage
             .\artifacts\docs
+            .\tests\visual\windows
             .\TestResults
           if-no-files-found: warn

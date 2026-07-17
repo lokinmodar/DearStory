@@ -279,6 +279,15 @@ The current slice uses:
 
 Markdown Doc Blocks are part of the approved project direction, but executable Markdown is not implemented in this slice. Today, the machine-readable source of truth for story controls is the argument schema plus the story metadata generated from source.
 
+The current static-docs baseline recognizes typed Markdown blocks such as:
+
+- `:::story id="buttons/primary"`
+- `:::controls`
+- `:::arg-types`
+- `:::source language="cpp"`
+
+These blocks are interpreted by the static docs pipeline and remain safe, non-executable content.
+
 ## Review checklist for story authors
 
 - ID is already canonical and stable.
