@@ -83,7 +83,9 @@
     <Project Path="tests/unit/transports/dotnet/DearStory.Transport.Windows.Tests/DearStory.Transport.Windows.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/conformance/" />
-  <Folder Name="/tests/conformance/hosts/" />
+  <Folder Name="/tests/conformance/hosts/">
+    <Project Path="tests/conformance/hosts/DearStory.HostConformance.Tests/DearStory.HostConformance.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/visual/" />
   <Folder Name="/tests/visual/windows/" />
 </Solution>
