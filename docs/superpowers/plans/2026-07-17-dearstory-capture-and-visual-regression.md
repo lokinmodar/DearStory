@@ -666,8 +666,9 @@ public static class CaptureArtifactLayout
         ArgumentException.ThrowIfNullOrWhiteSpace(storyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(hostId);
 
-        var repoRoot = Path.GetFullPath(Path.Combine(workspaceRoot, "..", "..", ".."));
-        var canonicalDirectory = Path.Combine(repoRoot, "tests", "visual", "windows", "baselines");
+        var repoRoot = ResolveRepositoryRoot(workspaceRoot);
+        var storySegments = storyId.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var canonicalDirectory = Path.Combine(repoRoot, "tests", "visual", "windows", "baselines", Path.Combine(storySegments[..^1]));
         var experimentalRoot = artifactRootOverride
             ?? Environment.GetEnvironmentVariable("DEARSTORY_VISUAL_ARTIFACT_ROOT")
             ?? Path.Combine(
@@ -675,12 +676,25 @@ public static class CaptureArtifactLayout
                 "DearStory",
                 "visual");
 
-        var safeName = storyId.Replace('/', '-').Replace('\\', '-');
+        var safeName = storySegments[^1];
         return new CaptureArtifactPaths(
-            ActualImagePath: Path.Combine(experimentalRoot, "actual", hostId, safeName + ".png"),
+            ActualImagePath: Path.Combine(experimentalRoot, "actual", hostId, Path.Combine(storySegments)) + ".png",
             BaselineImagePath: Path.Combine(canonicalDirectory, safeName + ".png"),
-            DiffImagePath: Path.Combine(experimentalRoot, "diff", hostId, safeName + ".png"),
+            DiffImagePath: Path.Combine(experimentalRoot, "diff", hostId, Path.Combine(storySegments)) + ".png",
             ManifestPath: Path.Combine(experimentalRoot, "capture-results.json"));
+    }
+
+    private static string ResolveRepositoryRoot(string workspaceRoot)
+    {
+        for (var directory = new DirectoryInfo(workspaceRoot); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "DearStory.slnx")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("The DearStory repository root could not be resolved from the workspace root.");
     }
 }
 
