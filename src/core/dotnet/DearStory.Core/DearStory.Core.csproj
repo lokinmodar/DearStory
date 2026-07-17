@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Core</AssemblyName>
+    <RootNamespace>DearStory.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
+  </ItemGroup>
+</Project>

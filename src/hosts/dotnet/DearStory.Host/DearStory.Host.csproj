@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Host</AssemblyName>
+    <RootNamespace>DearStory.Host</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ImGui.NET" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
+    <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+    <ProjectReference Include="..\..\..\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
+    <ProjectReference Include="..\..\..\..\sdk\dotnet\DearStory.Sdk\DearStory.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\..\examples\workspaces\windows-slice\dotnet\Stories\ButtonsPrimary.cs" Link="Stories\ButtonsPrimary.cs" />
+  </ItemGroup>
+</Project>

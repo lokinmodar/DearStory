@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Runner</AssemblyName>
+    <RootNamespace>DearStory.Runner</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+    <ProjectReference Include="..\..\..\catalog\dotnet\DearStory.Catalog\DearStory.Catalog.csproj" />
+    <ProjectReference Include="..\..\..\docs\dotnet\DearStory.Docs\DearStory.Docs.csproj" />
+    <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
+    <ProjectReference Include="..\..\..\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
+    <ProjectReference Include="..\..\..\..\tools\DearStory.CaptureWorker\DearStory.CaptureWorker.csproj" />
+  </ItemGroup>
+</Project>

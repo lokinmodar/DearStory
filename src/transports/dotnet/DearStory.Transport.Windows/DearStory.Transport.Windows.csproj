@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Transport.Windows</AssemblyName>
+    <RootNamespace>DearStory.Transport.Windows</RootNamespace>
+  </PropertyGroup>
+</Project>

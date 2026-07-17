@@ -5,164 +5,13 @@ namespace DearStory.ProtocolGenerator.Tests;
 
 internal static class TestManifest
 {
-    internal static string Valid =>
-        """
-        {
-          "protocol": {
-            "major": 1,
-            "minor": 0
-          },
-          "enums": [
-            {
-              "name": "peer_role",
-              "values": [
-                "runner",
-                "catalog",
-                "host"
-              ]
-            }
-          ],
-          "records": [
-            {
-              "name": "protocol_version",
-              "fields": [
-                {
-                  "name": "major",
-                  "type": "uint16",
-                  "required": true
-                },
-                {
-                  "name": "minor",
-                  "type": "uint16",
-                  "required": true
-                }
-              ]
-            },
-            {
-              "name": "implementation_identity",
-              "fields": [
-                {
-                  "name": "name",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "version",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "language",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "toolchain",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "binding",
-                  "type": "string",
-                  "required": false
-                },
-                {
-                  "name": "dearImGuiVersion",
-                  "type": "string",
-                  "required": false
-                },
-                {
-                  "name": "dearImGuiIdentity",
-                  "type": "string",
-                  "required": false
-                }
-              ]
-            },
-            {
-              "name": "protocol_error",
-              "fields": [
-                {
-                  "name": "code",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "message",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "recovery",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "details",
-                  "type": "object",
-                  "required": false
-                }
-              ]
-            }
-          ],
-          "messages": [
-            {
-              "name": "hello",
-              "fields": [
-                {
-                  "name": "role",
-                  "type": "peer_role",
-                  "required": true
-                },
-                {
-                  "name": "implementation",
-                  "type": "implementation_identity",
-                  "required": true
-                },
-                {
-                  "name": "supportedCapabilities",
-                  "type": "string[]",
-                  "required": true
-                },
-                {
-                  "name": "requiredCapabilities",
-                  "type": "string[]",
-                  "required": true
-                }
-              ]
-            },
-            {
-              "name": "welcome",
-              "fields": [
-                {
-                  "name": "peerId",
-                  "type": "uuid",
-                  "required": true
-                },
-                {
-                  "name": "negotiatedVersion",
-                  "type": "protocol_version",
-                  "required": true
-                },
-                {
-                  "name": "acceptedCapabilities",
-                  "type": "string[]",
-                  "required": true
-                }
-              ]
-            },
-            {
-              "name": "reject",
-              "fields": [
-                {
-                  "name": "error",
-                  "type": "protocol_error",
-                  "required": true
-                }
-              ]
-            }
-          ]
-        }
-        """;
+    internal static string Valid => Load();
+
+    internal static string Load() =>
+        File.ReadAllText(Path.Combine(FindRepositoryRoot(), "protocol", "control", "messages.json"));
+
+    internal static ProtocolManifest LoadModel() =>
+        ProtocolManifest.Parse(Load());
 
     internal static string WithDuplicateHello
     {
@@ -173,5 +22,20 @@ internal static class TestManifest
             messages.Add(messages[0]!.DeepClone());
             return manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         }
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "DearStory.slnx")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("Repository root containing DearStory.slnx was not found.");
     }
 }

@@ -13,6 +13,8 @@ Run `pwsh -NoProfile -File .\eng\doctor.ps1 -Json` from a clean checkout to insp
 
 Use `pwsh -NoProfile -File .\eng\build.ps1 -Configuration Debug` to run the native and managed build steps, and `pwsh -NoProfile -File .\eng\test.ps1 -Configuration Debug` to run the baseline native and managed test suites.
 
+Use `dotnet run --project .\src\runner\dotnet\DearStory.Runner\DearStory.Runner.csproj -- build .\examples\workspaces\windows-slice --configuration Release` to emit the current static-docs slice into `artifacts\docs`.
+
 For Release verification with coverage, use:
 
 - `pwsh -NoProfile -File .\eng\build.ps1 -Configuration Release`

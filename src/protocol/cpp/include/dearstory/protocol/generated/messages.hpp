@@ -16,6 +16,34 @@ enum class peer_role {
     host,
 };
 
+/// Represents the "action_event" generated model.
+struct action_event final {
+    /// Stores the value mapped from the "emittedAt" wire field.
+    std::string emittedAt{};
+    /// Stores the value mapped from the "name" wire field.
+    std::string name{};
+    /// Stores the value mapped from the "payload" wire field.
+    nlohmann::json payload{};
+    /// Stores the value mapped from the "targetId" wire field.
+    std::optional<std::string> targetId{};
+
+    friend bool operator==(const action_event&, const action_event&) = default;
+};
+
+/// Represents the "field_diagnostic" generated model.
+struct field_diagnostic final {
+    /// Stores the value mapped from the "code" wire field.
+    std::string code{};
+    /// Stores the value mapped from the "field" wire field.
+    std::string field{};
+    /// Stores the value mapped from the "message" wire field.
+    std::string message{};
+    /// Stores the value mapped from the "recovery" wire field.
+    std::optional<std::string> recovery{};
+
+    friend bool operator==(const field_diagnostic&, const field_diagnostic&) = default;
+};
+
 /// Represents the "implementation_identity" generated model.
 struct implementation_identity final {
     /// Stores the value mapped from the "binding" wire field.
@@ -34,6 +62,20 @@ struct implementation_identity final {
     std::string version{};
 
     friend bool operator==(const implementation_identity&, const implementation_identity&) = default;
+};
+
+/// Represents the "log_event" generated model.
+struct log_event final {
+    /// Stores the value mapped from the "details" wire field.
+    std::optional<nlohmann::json> details{};
+    /// Stores the value mapped from the "emittedAt" wire field.
+    std::string emittedAt{};
+    /// Stores the value mapped from the "level" wire field.
+    std::string level{};
+    /// Stores the value mapped from the "message" wire field.
+    std::string message{};
+
+    friend bool operator==(const log_event&, const log_event&) = default;
 };
 
 /// Represents the "protocol_error" generated model.
@@ -60,6 +102,178 @@ struct protocol_version final {
     friend bool operator==(const protocol_version&, const protocol_version&) = default;
 };
 
+/// Represents the "semantic_metadata" generated model.
+struct semantic_metadata final {
+    /// Stores the value mapped from the "accessibleName" wire field.
+    std::optional<std::string> accessibleName{};
+    /// Stores the value mapped from the "description" wire field.
+    std::optional<std::string> description{};
+    /// Stores the value mapped from the "role" wire field.
+    std::optional<std::string> role{};
+
+    friend bool operator==(const semantic_metadata&, const semantic_metadata&) = default;
+};
+
+/// Represents the "story_argument_schema" generated model.
+struct story_argument_schema final {
+    /// Stores the value mapped from the "dialect" wire field.
+    std::string dialect{};
+    /// Stores the value mapped from the "schema" wire field.
+    nlohmann::json schema{};
+
+    friend bool operator==(const story_argument_schema&, const story_argument_schema&) = default;
+};
+
+/// Represents the "story_descriptor" generated model.
+struct story_descriptor final {
+    /// Stores the value mapped from the "argumentSchema" wire field.
+    story_argument_schema argumentSchema{};
+    /// Stores the value mapped from the "capabilities" wire field.
+    std::vector<std::string> capabilities{};
+    /// Stores the value mapped from the "defaultArguments" wire field.
+    nlohmann::json defaultArguments{};
+    /// Stores the value mapped from the "description" wire field.
+    std::optional<std::string> description{};
+    /// Stores the value mapped from the "hierarchy" wire field.
+    std::vector<std::string> hierarchy{};
+    /// Stores the value mapped from the "id" wire field.
+    std::string id{};
+    /// Stores the value mapped from the "sourcePath" wire field.
+    std::optional<std::string> sourcePath{};
+    /// Stores the value mapped from the "tags" wire field.
+    std::vector<std::string> tags{};
+    /// Stores the value mapped from the "title" wire field.
+    std::string title{};
+
+    friend bool operator==(const story_descriptor&, const story_descriptor&) = default;
+};
+
+/// Represents the "story_target" generated model.
+struct story_target final {
+    /// Stores the value mapped from the "bounds" wire field.
+    std::optional<nlohmann::json> bounds{};
+    /// Stores the value mapped from the "id" wire field.
+    std::string id{};
+    /// Stores the value mapped from the "semantic" wire field.
+    std::optional<semantic_metadata> semantic{};
+
+    friend bool operator==(const story_target&, const story_target&) = default;
+};
+
+/// Represents the "action_emitted" generated model.
+struct action_emitted final {
+    /// Stores the value mapped from the "action" wire field.
+    action_event action{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "storyId" wire field.
+    std::string storyId{};
+
+    friend bool operator==(const action_emitted&, const action_emitted&) = default;
+};
+
+/// Represents the "argument_patch" generated model.
+struct argument_patch final {
+    /// Stores the value mapped from the "patch" wire field.
+    nlohmann::json patch{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+
+    friend bool operator==(const argument_patch&, const argument_patch&) = default;
+};
+
+/// Represents the "argument_patch_result" generated model.
+struct argument_patch_result final {
+    /// Stores the value mapped from the "accepted" wire field.
+    bool accepted{};
+    /// Stores the value mapped from the "diagnostics" wire field.
+    std::vector<field_diagnostic> diagnostics{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "updatedArguments" wire field.
+    nlohmann::json updatedArguments{};
+
+    friend bool operator==(const argument_patch_result&, const argument_patch_result&) = default;
+};
+
+/// Represents the "capture_completed" generated model.
+struct capture_completed final {
+    /// Stores the value mapped from the "artifactPath" wire field.
+    std::string artifactPath{};
+    /// Stores the value mapped from the "captureId" wire field.
+    std::string captureId{};
+    /// Stores the value mapped from the "height" wire field.
+    std::int32_t height{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "timestampUtc" wire field.
+    std::string timestampUtc{};
+    /// Stores the value mapped from the "width" wire field.
+    std::int32_t width{};
+
+    friend bool operator==(const capture_completed&, const capture_completed&) = default;
+};
+
+/// Represents the "capture_requested" generated model.
+struct capture_requested final {
+    /// Stores the value mapped from the "artifactKey" wire field.
+    std::string artifactKey{};
+    /// Stores the value mapped from the "captureId" wire field.
+    std::string captureId{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+
+    friend bool operator==(const capture_requested&, const capture_requested&) = default;
+};
+
+/// Represents the "frame_channel_ready" generated model.
+struct frame_channel_ready final {
+    /// Stores the value mapped from the "colorSpace" wire field.
+    std::string colorSpace{};
+    /// Stores the value mapped from the "height" wire field.
+    std::int32_t height{};
+    /// Stores the value mapped from the "mappingName" wire field.
+    std::string mappingName{};
+    /// Stores the value mapped from the "pixelFormat" wire field.
+    std::string pixelFormat{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "slotCount" wire field.
+    std::int32_t slotCount{};
+    /// Stores the value mapped from the "stride" wire field.
+    std::int32_t stride{};
+    /// Stores the value mapped from the "width" wire field.
+    std::int32_t width{};
+
+    friend bool operator==(const frame_channel_ready&, const frame_channel_ready&) = default;
+};
+
+/// Represents the "frame_presented" generated model.
+struct frame_presented final {
+    /// Stores the value mapped from the "sequence" wire field.
+    std::int64_t sequence{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "slotIndex" wire field.
+    std::int32_t slotIndex{};
+    /// Stores the value mapped from the "timestampUtc" wire field.
+    std::string timestampUtc{};
+
+    friend bool operator==(const frame_presented&, const frame_presented&) = default;
+};
+
+/// Represents the "heartbeat" generated model.
+struct heartbeat final {
+    /// Stores the value mapped from the "activeSessionCount" wire field.
+    std::int32_t activeSessionCount{};
+    /// Stores the value mapped from the "hostId" wire field.
+    std::string hostId{};
+    /// Stores the value mapped from the "sentAtUtc" wire field.
+    std::string sentAtUtc{};
+
+    friend bool operator==(const heartbeat&, const heartbeat&) = default;
+};
+
 /// Represents the "hello" generated model.
 struct hello final {
     /// Stores the value mapped from the "implementation" wire field.
@@ -74,12 +288,148 @@ struct hello final {
     friend bool operator==(const hello&, const hello&) = default;
 };
 
+/// Represents the "host_faulted" generated model.
+struct host_faulted final {
+    /// Stores the value mapped from the "category" wire field.
+    std::string category{};
+    /// Stores the value mapped from the "exitCode" wire field.
+    std::optional<std::int32_t> exitCode{};
+    /// Stores the value mapped from the "hostId" wire field.
+    std::string hostId{};
+    /// Stores the value mapped from the "message" wire field.
+    std::string message{};
+    /// Stores the value mapped from the "processId" wire field.
+    std::optional<std::int32_t> processId{};
+    /// Stores the value mapped from the "recovery" wire field.
+    std::string recovery{};
+
+    friend bool operator==(const host_faulted&, const host_faulted&) = default;
+};
+
+/// Represents the "input_batch" generated model.
+struct input_batch final {
+    /// Stores the value mapped from the "events" wire field.
+    nlohmann::json events{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "timestampUtc" wire field.
+    std::string timestampUtc{};
+
+    friend bool operator==(const input_batch&, const input_batch&) = default;
+};
+
+/// Represents the "log_emitted" generated model.
+struct log_emitted final {
+    /// Stores the value mapped from the "log" wire field.
+    log_event log{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "storyId" wire field.
+    std::string storyId{};
+
+    friend bool operator==(const log_emitted&, const log_emitted&) = default;
+};
+
 /// Represents the "reject" generated model.
 struct reject final {
     /// Stores the value mapped from the "error" wire field.
     protocol_error error{};
 
     friend bool operator==(const reject&, const reject&) = default;
+};
+
+/// Represents the "story_index_published" generated model.
+struct story_index_published final {
+    /// Stores the value mapped from the "hostId" wire field.
+    std::string hostId{};
+    /// Stores the value mapped from the "stories" wire field.
+    std::vector<story_descriptor> stories{};
+
+    friend bool operator==(const story_index_published&, const story_index_published&) = default;
+};
+
+/// Represents the "story_session_closed" generated model.
+struct story_session_closed final {
+    /// Stores the value mapped from the "reason" wire field.
+    std::optional<std::string> reason{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "storyId" wire field.
+    std::string storyId{};
+
+    friend bool operator==(const story_session_closed&, const story_session_closed&) = default;
+};
+
+/// Represents the "story_session_open" generated model.
+struct story_session_open final {
+    /// Stores the value mapped from the "initialArguments" wire field.
+    nlohmann::json initialArguments{};
+    /// Stores the value mapped from the "randomSeed" wire field.
+    std::string randomSeed{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "startTimeUtc" wire field.
+    std::string startTimeUtc{};
+    /// Stores the value mapped from the "storyId" wire field.
+    std::string storyId{};
+
+    friend bool operator==(const story_session_open&, const story_session_open&) = default;
+};
+
+/// Represents the "story_session_opened" generated model.
+struct story_session_opened final {
+    /// Stores the value mapped from the "activeArguments" wire field.
+    nlohmann::json activeArguments{};
+    /// Stores the value mapped from the "randomSeed" wire field.
+    std::string randomSeed{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "startTimeUtc" wire field.
+    std::string startTimeUtc{};
+    /// Stores the value mapped from the "storyId" wire field.
+    std::string storyId{};
+
+    friend bool operator==(const story_session_opened&, const story_session_opened&) = default;
+};
+
+/// Represents the "story_session_reset" generated model.
+struct story_session_reset final {
+    /// Stores the value mapped from the "arguments" wire field.
+    nlohmann::json arguments{};
+    /// Stores the value mapped from the "randomSeed" wire field.
+    std::string randomSeed{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "startTimeUtc" wire field.
+    std::string startTimeUtc{};
+
+    friend bool operator==(const story_session_reset&, const story_session_reset&) = default;
+};
+
+/// Represents the "target_snapshot" generated model.
+struct target_snapshot final {
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "storyId" wire field.
+    std::string storyId{};
+    /// Stores the value mapped from the "targets" wire field.
+    std::vector<story_target> targets{};
+
+    friend bool operator==(const target_snapshot&, const target_snapshot&) = default;
+};
+
+/// Represents the "viewport_changed" generated model.
+struct viewport_changed final {
+    /// Stores the value mapped from the "height" wire field.
+    std::int32_t height{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "viewport" wire field.
+    std::optional<nlohmann::json> viewport{};
+    /// Stores the value mapped from the "width" wire field.
+    std::int32_t width{};
+
+    friend bool operator==(const viewport_changed&, const viewport_changed&) = default;
 };
 
 /// Represents the "welcome" generated model.

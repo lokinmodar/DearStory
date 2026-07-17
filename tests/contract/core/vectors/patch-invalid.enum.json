@@ -1,0 +1,35 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "size": {
+        "type": "string",
+        "enum": [
+          "small",
+          "medium",
+          "large"
+        ],
+        "default": "medium",
+        "x-dearstory-control": "radio"
+      }
+    },
+    "required": [
+      "size"
+    ]
+  },
+  "currentArguments": {
+    "size": "medium"
+  },
+  "patch": {
+    "size": "giant"
+  },
+  "expected": {
+    "accepted": false,
+    "updatedArguments": {
+      "size": "medium"
+    },
+    "diagnosticCodes": [
+      "args.enum"
+    ]
+  }
+}

@@ -19,7 +19,8 @@ Update Markdown under `docs/` whenever a change affects:
 - protocol shape or semantics;
 - operational behavior visible to users or contributors;
 - architecture boundaries or supported platforms;
-- quality gates, build expectations, or maintenance rules.
+- quality gates, build expectations, or maintenance rules;
+- static-docs output shape, screenshot expectations, or Doc Block syntax.
 
 ### 2. Code docs
 
@@ -48,10 +49,22 @@ Use Mermaid or equivalent lightweight diagrams when structure is easier to under
 
 Coverage gates in this repository measure hand-authored runtime logic, not generated artifacts.
 
-Current bootstrap scope:
+Current implemented scope:
 
-- native runtime coverage counts hand-authored `.cpp` implementation files;
-- managed runtime coverage counts hand-authored `.cs` files and excludes generated `*.g.cs`;
+- native runtime coverage counts hand-authored `.cpp` implementation files under:
+  - `src/protocol/cpp/src`
+  - `src/core/cpp/src`
+  - `sdk/cpp/src`
+- managed runtime coverage counts hand-authored `.cs` files under:
+  - `src/catalog/dotnet/DearStory.Catalog`
+  - `src/protocol/dotnet/DearStory.Protocol`
+  - `src/core/dotnet/DearStory.Core`
+  - `src/docs/dotnet/DearStory.Docs`
+  - `src/runner/dotnet/DearStory.Runner`
+  - `sdk/dotnet/DearStory.Sdk`
+  - `sdk/dotnet/DearStory.Sdk.Generator`
+  - `src/transports/dotnet/DearStory.Transport.Windows`
+- generated `*.g.cs`, generated protocol C++ headers, and protocol generator implementation are excluded from coverage gates;
 - generated code remains protected by regeneration checks, contract tests, and E2E conformance tests.
 
 Coverage thresholds are minimum gates, not targets.
@@ -65,6 +78,8 @@ No implementation is considered complete until all of the following are green fo
 - unit/integration/E2E suites relevant to the change;
 - coverage gate where applicable;
 - documentation generation where applicable;
+- static-docs generation where applicable;
+- canonical verification through `eng/build.ps1` and `eng/test.ps1`;
 - `git diff --check`.
 
 ## Review expectations

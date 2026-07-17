@@ -146,42 +146,66 @@ public static class ModelEmitter
 
     private static string ToCppType(ManifestFieldDefinition field, ProtocolManifest manifest)
     {
-        var baseType = field.Type switch
-        {
-            "string" => "std::string",
-            "string[]" => "std::vector<std::string>",
-            "uint16" => "std::uint16_t",
-            "uuid" => "std::string",
-            "object" => "nlohmann::json",
-            _ when manifest.Enums.Any(item => item.Name == field.Type) => field.Type,
-            _ => field.Type
-        };
+        var baseType = ResolveCppType(field.Type, manifest);
 
         return field.Required ? baseType : $"std::optional<{baseType}>";
     }
 
     private static string ToCSharpType(ManifestFieldDefinition field, ProtocolManifest manifest)
     {
-        var baseType = field.Type switch
-        {
-            "string" => "string",
-            "string[]" => "IReadOnlyList<string>",
-            "uint16" => "ushort",
-            "uuid" => "Guid",
-            "object" => "JsonObject",
-            _ when manifest.Enums.Any(item => item.Name == field.Type) => ToPascalCase(field.Type),
-            _ => ToPascalCase(field.Type)
-        };
+        var baseType = ResolveCSharpType(field.Type, manifest);
 
         if (field.Required)
         {
             return baseType;
         }
 
-        return baseType switch
+        return $"{baseType}?";
+    }
+
+    private static string ResolveCppType(string typeName, ProtocolManifest manifest)
+    {
+        if (typeName.EndsWith("[]", StringComparison.Ordinal))
         {
-            "string" or "IReadOnlyList<string>" or "JsonObject" => $"{baseType}?",
-            _ => $"{baseType}?"
+            return $"std::vector<{ResolveCppType(typeName[..^2], manifest)}>";
+        }
+
+        return typeName switch
+        {
+            "string" => "std::string",
+            "uint16" => "std::uint16_t",
+            "int32" => "std::int32_t",
+            "int64" => "std::int64_t",
+            "uuid" => "std::string",
+            "timestamp" => "std::string",
+            "object" => "nlohmann::json",
+            "boolean" => "bool",
+            "json" => "nlohmann::json",
+            _ when manifest.Enums.Any(item => item.Name == typeName) => typeName,
+            _ => typeName
+        };
+    }
+
+    private static string ResolveCSharpType(string typeName, ProtocolManifest manifest)
+    {
+        if (typeName.EndsWith("[]", StringComparison.Ordinal))
+        {
+            return $"IReadOnlyList<{ResolveCSharpType(typeName[..^2], manifest)}>";
+        }
+
+        return typeName switch
+        {
+            "string" => "string",
+            "uint16" => "ushort",
+            "int32" => "int",
+            "int64" => "long",
+            "uuid" => "Guid",
+            "timestamp" => "string",
+            "object" => "JsonObject",
+            "boolean" => "bool",
+            "json" => "JsonNode",
+            _ when manifest.Enums.Any(item => item.Name == typeName) => ToPascalCase(typeName),
+            _ => ToPascalCase(typeName)
         };
     }
 

@@ -1,15 +1,48 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/catalog/" />
+  <Folder Name="/src/catalog/dotnet/">
+    <Project Path="src/catalog/dotnet/DearStory.Catalog/DearStory.Catalog.csproj" />
+  </Folder>
+  <Folder Name="/src/core/" />
+  <Folder Name="/src/core/dotnet/">
+    <Project Path="src/core/dotnet/DearStory.Core/DearStory.Core.csproj" />
+  </Folder>
+  <Folder Name="/src/docs/" />
+  <Folder Name="/src/docs/dotnet/">
+    <Project Path="src/docs/dotnet/DearStory.Docs/DearStory.Docs.csproj" />
+  </Folder>
+  <Folder Name="/src/hosts/" />
+  <Folder Name="/src/hosts/dotnet/">
+    <Project Path="src/hosts/dotnet/DearStory.Host/DearStory.Host.csproj" />
+  </Folder>
+  <Folder Name="/sdk/" />
+  <Folder Name="/sdk/dotnet/">
+    <Project Path="sdk/dotnet/DearStory.Sdk/DearStory.Sdk.csproj" />
+    <Project Path="sdk/dotnet/DearStory.Sdk.Generator/DearStory.Sdk.Generator.csproj" />
+  </Folder>
   <Folder Name="/src/protocol/" />
   <Folder Name="/src/protocol/dotnet/">
     <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
   </Folder>
+  <Folder Name="/src/runner/" />
+  <Folder Name="/src/runner/dotnet/">
+    <Project Path="src/runner/dotnet/DearStory.Runner/DearStory.Runner.csproj" />
+  </Folder>
+  <Folder Name="/src/transports/" />
+  <Folder Name="/src/transports/dotnet/">
+    <Project Path="src/transports/dotnet/DearStory.Transport.Windows/DearStory.Transport.Windows.csproj" />
+  </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/DearStory.CaptureWorker/DearStory.CaptureWorker.csproj" />
     <Project Path="tools/DearStory.ProtocolGenerator/DearStory.ProtocolGenerator.csproj" />
     <Project Path="tools/DearStory.ProtocolProbe.DotNet/DearStory.ProtocolProbe.DotNet.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/contract/" />
+  <Folder Name="/tests/contract/core/">
+    <Project Path="tests/contract/core/DearStory.Core.ContractTests/DearStory.Core.ContractTests.csproj" />
+  </Folder>
   <Folder Name="/tests/contract/protocol/">
     <Project Path="tests/contract/protocol/DearStory.Protocol.ContractTests/DearStory.Protocol.ContractTests.csproj" />
   </Folder>
@@ -17,14 +50,51 @@
   <Folder Name="/tests/e2e/protocol/">
     <Project Path="tests/e2e/protocol/DearStory.Protocol.E2ETests/DearStory.Protocol.E2ETests.csproj" />
   </Folder>
+  <Folder Name="/tests/e2e/windows/">
+    <Project Path="tests/e2e/windows/DearStory.WindowsSlice.E2ETests/DearStory.WindowsSlice.E2ETests.csproj" />
+  </Folder>
   <Folder Name="/tests/integration/" />
   <Folder Name="/tests/integration/protocol/">
     <Project Path="tests/integration/protocol/DearStory.Protocol.IntegrationTests/DearStory.Protocol.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tests/integration/windows/">
+    <Project Path="tests/integration/windows/DearStory.WindowsSlice.Tests/DearStory.WindowsSlice.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/" />
+  <Folder Name="/tests/unit/catalog/" />
+  <Folder Name="/tests/unit/catalog/dotnet/">
+    <Project Path="tests/unit/catalog/dotnet/DearStory.Catalog.Tests/DearStory.Catalog.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/core/" />
+  <Folder Name="/tests/unit/core/dotnet/">
+    <Project Path="tests/unit/core/dotnet/DearStory.Core.Tests/DearStory.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/docs/" />
+  <Folder Name="/tests/unit/docs/dotnet/">
+    <Project Path="tests/unit/docs/dotnet/DearStory.Docs.Tests/DearStory.Docs.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/sdk/" />
+  <Folder Name="/tests/unit/sdk/dotnet/">
+    <Project Path="tests/unit/sdk/dotnet/DearStory.Sdk.Tests/DearStory.Sdk.Tests.csproj" />
+    <Project Path="tests/unit/sdk/dotnet/DearStory.Sdk.Generator.Tests/DearStory.Sdk.Generator.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/protocol/" />
   <Folder Name="/tests/unit/protocol/dotnet/">
     <Project Path="tests/unit/protocol/dotnet/DearStory.Protocol.Tests/DearStory.Protocol.Tests.csproj" />
     <Project Path="tests/unit/protocol/dotnet/DearStory.ProtocolGenerator.Tests/DearStory.ProtocolGenerator.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/unit/runner/" />
+  <Folder Name="/tests/unit/runner/dotnet/">
+    <Project Path="tests/unit/runner/dotnet/DearStory.Runner.Tests/DearStory.Runner.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/transports/" />
+  <Folder Name="/tests/unit/transports/dotnet/">
+    <Project Path="tests/unit/transports/dotnet/DearStory.Transport.Windows.Tests/DearStory.Transport.Windows.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/conformance/" />
+  <Folder Name="/tests/conformance/hosts/">
+    <Project Path="tests/conformance/hosts/DearStory.HostConformance.Tests/DearStory.HostConformance.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/visual/" />
+  <Folder Name="/tests/visual/windows/" />
 </Solution>

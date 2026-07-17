@@ -3,6 +3,15 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $buildScript = Join-Path $repositoryRoot 'eng\build.ps1'
 $testScript = Join-Path $repositoryRoot 'eng\test.ps1'
+$testScriptContent = Get-Content -Raw $testScript
+
+if ($testScriptContent -notmatch 'tests\\unit\\core\\dotnet\\DearStory\.Core\.Tests') {
+    throw 'eng/test.ps1 must run the managed core tests.'
+}
+
+if ($testScriptContent -notmatch 'tests\\unit\\sdk\\dotnet\\DearStory\.Sdk\.Tests') {
+    throw 'eng/test.ps1 must run the managed SDK tests.'
+}
 
 $buildOutput = & pwsh -NoProfile -File $buildScript -Configuration Debug -WhatIf 2>&1
 if ($LASTEXITCODE -ne 0) {
@@ -38,10 +47,24 @@ $buildLines = @($buildOutput | ForEach-Object { $_.ToString() })
 $testLines = @($testOutput | ForEach-Object { $_.ToString() })
 $coverageLines = @($coverageOutput | ForEach-Object { $_.ToString() })
 $coverageOverrideLines = @($coverageOverrideOutput | ForEach-Object { $_.ToString() })
+$managedTestProjects = @(
+    '.\tests\unit\protocol\dotnet\DearStory.Protocol.Tests\DearStory.Protocol.Tests.csproj',
+    '.\tests\unit\protocol\dotnet\DearStory.ProtocolGenerator.Tests\DearStory.ProtocolGenerator.Tests.csproj',
+    '.\tests\integration\protocol\DearStory.Protocol.IntegrationTests\DearStory.Protocol.IntegrationTests.csproj',
+    '.\tests\e2e\protocol\DearStory.Protocol.E2ETests\DearStory.Protocol.E2ETests.csproj',
+    '.\tests\contract\protocol\DearStory.Protocol.ContractTests\DearStory.Protocol.ContractTests.csproj',
+    '.\tests\unit\core\dotnet\DearStory.Core.Tests\DearStory.Core.Tests.csproj',
+    '.\tests\contract\core\DearStory.Core.ContractTests\DearStory.Core.ContractTests.csproj',
+    '.\tests\unit\sdk\dotnet\DearStory.Sdk.Tests\DearStory.Sdk.Tests.csproj',
+    '.\tests\unit\sdk\dotnet\DearStory.Sdk.Generator.Tests\DearStory.Sdk.Generator.Tests.csproj'
+)
 
 $buildExpectedCommands = @(
     'cmake --build --preset windows-msvc-debug',
-    'dotnet build .\DearStory.slnx --no-restore -warnaserror'
+    'dotnet build .\DearStory.slnx --no-restore -warnaserror',
+    'dotnet build .\src\core\dotnet\DearStory.Core\DearStory.Core.csproj --no-restore -warnaserror',
+    'dotnet build .\sdk\dotnet\DearStory.Sdk\DearStory.Sdk.csproj --no-restore -warnaserror',
+    'dotnet build .\sdk\dotnet\DearStory.Sdk.Generator\DearStory.Sdk.Generator.csproj --no-restore -warnaserror'
 )
 
 foreach ($expectedCommand in $buildExpectedCommands) {
@@ -53,11 +76,14 @@ foreach ($expectedCommand in $buildExpectedCommands) {
 
 $testExpectedCommands = @(
     'ctest --preset windows-msvc-debug --output-on-failure',
-    'dotnet test .\DearStory.slnx --no-build -m:1',
     'pwsh -NoProfile -File .\tests\unit\foundation\Doctor.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\BuildScripts.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\CoverageGate.Tests.ps1'
 )
+
+foreach ($managedTestProject in $managedTestProjects) {
+    $testExpectedCommands += "dotnet test $managedTestProject --no-build -m:1"
+}
 
 foreach ($expectedCommand in $testExpectedCommands) {
     $matchCount = @($testLines | Select-String -SimpleMatch $expectedCommand).Count
@@ -68,15 +94,19 @@ foreach ($expectedCommand in $testExpectedCommands) {
 
 $coverageExpectedCommands = @(
     'ctest --preset windows-msvc-debug --output-on-failure -C Release',
-    'dotnet test .\DearStory.slnx --no-build -m:1 -c Release',
     'pwsh -NoProfile -File .\tests\unit\foundation\Doctor.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\BuildScripts.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\CoverageGate.Tests.ps1',
-    'cmake --build --preset windows-msvc-debug',
-    'OpenCppCoverage.exe --quiet',
-    'dotnet test .\DearStory.slnx -c Release --no-build -m:1 --collect:XPlat Code Coverage --results-directory .\artifacts\coverage\managed',
+    'cmake --build --preset windows-msvc-debug --config Release',
+    'OpenCppCoverage.exe --quiet --cover_children',
+    'ctest --test-dir',
     'pwsh -NoProfile -File .\eng\assert-coverage.ps1'
 )
+
+foreach ($managedTestProject in $managedTestProjects) {
+    $coverageExpectedCommands += "dotnet test $managedTestProject --no-build -m:1 -c Release"
+    $coverageExpectedCommands += "dotnet test $managedTestProject -c Release --no-build -m:1 --collect:XPlat Code Coverage --results-directory .\artifacts\coverage\managed"
+}
 
 foreach ($expectedCommand in $coverageExpectedCommands) {
     $matchCount = @($coverageLines | Select-String -SimpleMatch $expectedCommand).Count
@@ -85,6 +115,6 @@ foreach ($expectedCommand in $coverageExpectedCommands) {
     }
 }
 
-if (@($coverageOverrideLines | Select-String -SimpleMatch 'C:\tools\OpenCppCoverage\OpenCppCoverage.exe --quiet').Count -ne 1) {
+if (@($coverageOverrideLines | Select-String -SimpleMatch 'C:\tools\OpenCppCoverage\OpenCppCoverage.exe --quiet --cover_children').Count -ne 1) {
     throw 'Expected coverage override command to use DEARSTORY_OPENCPPCOVERAGE_PATH exactly once.'
 }

@@ -2,27 +2,34 @@
 
 ## Overview
 
-DearStory control protocol v1.0 defines the bootstrap handshake between protocol peers. Every message is encoded as UTF-8 JSON inside a uint32 little-endian length-prefixed frame. Peers reject declared frame sizes larger than 1,048,576 bytes before allocating the payload buffer.
+DearStory control protocol v1.0 defines the bootstrap handshake and the first
+language-neutral story/session contract between the runner, catalog, and
+official hosts. Every message is encoded as UTF-8 JSON inside a uint32
+little-endian length-prefixed frame. Peers reject declared frame sizes larger
+than 1,048,576 bytes before allocating the payload buffer.
 
 ## Envelope
 
-All messages use the same envelope.
+All control messages use the same envelope.
 
 | Field | Required | Type | Validation |
 | --- | --- | --- | --- |
 | `protocol` | Yes | `protocol_version` | Requires `major` and `minor`; rejects extra fields. |
-| `type` | Yes | `string` | One of `hello`, `welcome`, `reject`. |
+| `type` | Yes | `string` | One of the message names documented below. |
 | `messageId` | Yes | `string` | RFC 4122 UUID string. |
 | `correlationId` | No | `string` | RFC 4122 UUID string. |
 | `sessionId` | No | `string` | RFC 4122 UUID string. |
 | `timestamp` | Yes | `string` | RFC 3339 UTC date-time with millisecond precision. |
 | `payload` | Yes | `object` | Shape is selected by `type`. |
 
-Envelope-level additional fields are allowed for forward-compatible optional metadata.
+Envelope-level additional fields are allowed for forward-compatible optional
+metadata.
 
-## Payloads
+## Message families
 
-### `hello`
+### Handshake
+
+#### `hello`
 
 Direction: initiating peer -> accepting peer
 
@@ -33,7 +40,7 @@ Direction: initiating peer -> accepting peer
 | `supportedCapabilities` | Yes | `string[]` | Capability list offered by the sender. |
 | `requiredCapabilities` | Yes | `string[]` | Capability list that must be shared for the session to continue. |
 
-### `welcome`
+#### `welcome`
 
 Direction: accepting peer -> initiating peer
 
@@ -45,7 +52,7 @@ Direction: accepting peer -> initiating peer
 
 `welcome.correlationId` must equal the initiating `hello.messageId`.
 
-### `reject`
+#### `reject`
 
 Direction: accepting peer -> initiating peer
 
@@ -54,6 +61,222 @@ Direction: accepting peer -> initiating peer
 | `error` | Yes | `protocol_error` | Requires `code`, `message`, and `recovery`; may include optional `details`. |
 
 `reject.correlationId` must equal the initiating `hello.messageId`.
+
+### Story discovery
+
+#### `story_index_published`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `hostId` | Yes | `string` | Stable host identity for diagnostics and merge attribution. |
+| `stories` | Yes | `story_descriptor[]` | Complete published story set for the sending host. |
+
+Duplicate canonical story IDs across hosts are merge errors at the catalog/core
+layer and are not silently accepted.
+
+### Session lifecycle
+
+#### `story_session_open`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Stable session identity. |
+| `storyId` | Yes | `string` | Canonical story ID. |
+| `initialArguments` | Yes | `json` | JSON-compatible initial argument snapshot. |
+| `randomSeed` | Yes | `string` | Deterministic seed value encoded for transport. |
+| `startTimeUtc` | Yes | `string` | RFC 3339 UTC timestamp for deterministic services. |
+
+#### `story_session_opened`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Echoes the opened session. |
+| `storyId` | Yes | `string` | Canonical story ID. |
+| `activeArguments` | Yes | `json` | Accepted live argument snapshot. |
+| `randomSeed` | Yes | `string` | Effective seed after host initialization. |
+| `startTimeUtc` | Yes | `string` | Effective deterministic session start time. |
+
+#### `story_session_reset`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session to reset. |
+| `arguments` | Yes | `json` | Default or replacement argument snapshot. |
+| `randomSeed` | Yes | `string` | Reset deterministic seed. |
+| `startTimeUtc` | Yes | `string` | Reset deterministic clock value. |
+
+#### `story_session_closed`
+
+Direction: either peer -> the other
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session being closed. |
+| `storyId` | Yes | `string` | Canonical story ID for diagnostics. |
+| `reason` | No | `string` | Optional human-readable close reason. |
+
+### Argument updates
+
+#### `argument_patch`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session whose arguments should change. |
+| `patch` | Yes | `json` | JSON-compatible patch document or replacement payload. |
+
+#### `argument_patch_result`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session whose patch was evaluated. |
+| `accepted` | Yes | `boolean` | `true` when the patch was applied; otherwise `false`. |
+| `updatedArguments` | Yes | `json` | New accepted value or the last unchanged accepted value after rejection. |
+| `diagnostics` | Yes | `field_diagnostic[]` | Empty on success; field-level errors on rejection. |
+
+Patch validation is performed in the catalog before the send and again in the
+host before application. Rejected patches leave the previous accepted value
+intact.
+
+### Events and targets
+
+#### `action_emitted`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that emitted the action. |
+| `storyId` | Yes | `string` | Canonical story ID. |
+| `action` | Yes | `action_event` | Structured action payload. |
+
+#### `log_emitted`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that emitted the log. |
+| `storyId` | Yes | `string` | Canonical story ID. |
+| `log` | Yes | `log_event` | Structured log payload. |
+
+#### `target_snapshot`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that owns the target snapshot. |
+| `storyId` | Yes | `string` | Canonical story ID. |
+| `targets` | Yes | `story_target[]` | Stable target IDs and optional semantic metadata. |
+
+### Frames, capture, and host input
+
+#### `frame_channel_ready`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that owns the announced frame channel. |
+| `mappingName` | Yes | `string` | Windows shared-memory mapping name. |
+| `slotCount` | Yes | `int32` | Number of RGBA frame slots in the mapping. |
+| `pixelFormat` | Yes | `string` | Initial baseline requires `rgba8`. |
+| `colorSpace` | Yes | `string` | Initial baseline requires explicit color space metadata. |
+| `width` | Yes | `int32` | Published frame width in pixels. |
+| `height` | Yes | `int32` | Published frame height in pixels. |
+| `stride` | Yes | `int32` | Published row stride in bytes. |
+
+#### `frame_presented`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that rendered the frame. |
+| `slotIndex` | Yes | `int32` | Shared-memory slot containing the newest RGBA frame. |
+| `sequence` | Yes | `int64` | Monotonic frame sequence for stale-frame detection. |
+| `timestampUtc` | Yes | `timestamp` | RFC 3339 UTC timestamp with millisecond precision. |
+
+#### `capture_requested`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session whose frame should be captured. |
+| `captureId` | Yes | `uuid` | Correlates request and completion. |
+| `artifactKey` | Yes | `string` | Stable artifact identifier for output routing. |
+
+#### `capture_completed`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that produced the capture. |
+| `captureId` | Yes | `uuid` | Echoes the associated request. |
+| `artifactPath` | Yes | `string` | Workspace-relative or absolute artifact path recorded by the runner. |
+| `width` | Yes | `int32` | Captured frame width in pixels. |
+| `height` | Yes | `int32` | Captured frame height in pixels. |
+| `timestampUtc` | Yes | `timestamp` | RFC 3339 UTC timestamp with millisecond precision. |
+
+#### `input_batch`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that should consume the inputs. |
+| `events` | Yes | `json` | Batch of serializable input events supplied by the catalog. |
+| `timestampUtc` | Yes | `timestamp` | Timestamp associated with the batch dispatch. |
+
+#### `viewport_changed`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session whose viewport changed. |
+| `width` | Yes | `int32` | New viewport width in pixels. |
+| `height` | Yes | `int32` | New viewport height in pixels. |
+| `viewport` | No | `json` | Optional structured viewport/DPI/theme metadata. |
+
+### Supervision and recovery
+
+#### `heartbeat`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `hostId` | Yes | `string` | Stable host identity. |
+| `activeSessionCount` | Yes | `int32` | Number of live sessions the host currently owns. |
+| `sentAtUtc` | Yes | `timestamp` | RFC 3339 UTC timestamp with millisecond precision. |
+
+#### `host_faulted`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `hostId` | Yes | `string` | Stable host identity. |
+| `category` | Yes | `string` | Stable fault category such as `builder_failure`, `crash`, or `timeout`. |
+| `message` | Yes | `string` | Human-readable fault summary. |
+| `recovery` | Yes | `string` | Recommended next action for the runner or user. |
+| `processId` | No | `int32` | Optional native process ID. |
+| `exitCode` | No | `int32` | Optional process exit code when known. |
 
 ## Shared records
 
@@ -79,6 +302,66 @@ Optional fields: `binding`, `dearImGuiVersion`, `dearImGuiIdentity`
 | `recovery` | Yes | `string` | Recovery guidance presented to the caller. |
 | `details` | No | `object` | Structured diagnostic context. |
 
+### `story_argument_schema`
+
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `dialect` | Yes | `string` | Schema dialect identifier. |
+| `schema` | Yes | `json` | JSON-compatible argument schema document. |
+
+### `story_descriptor`
+
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `id` | Yes | `string` | Canonical language-neutral story ID. |
+| `title` | Yes | `string` | Human-facing story title. |
+| `hierarchy` | Yes | `string[]` | Optional pre-split catalog hierarchy. |
+| `tags` | Yes | `string[]` | Story classification tags. |
+| `description` | No | `string` | Optional short description. |
+| `sourcePath` | No | `string` | Optional source location hint. |
+| `argumentSchema` | Yes | `story_argument_schema` | Story argument contract. |
+| `defaultArguments` | Yes | `json` | Serializable default argument values. |
+| `capabilities` | Yes | `string[]` | Story-specific advertised capabilities. |
+
+### `semantic_metadata`
+
+Optional fields: `role`, `accessibleName`, `description`
+
+### `story_target`
+
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `id` | Yes | `string` | Stable target identifier. |
+| `bounds` | No | `json` | Host-defined serializable rectangle payload. |
+| `semantic` | No | `semantic_metadata` | Optional semantic annotations. |
+
+### `action_event`
+
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `name` | Yes | `string` | Stable action name. |
+| `payload` | Yes | `json` | JSON-compatible event payload. |
+| `emittedAt` | Yes | `string` | RFC 3339 UTC timestamp. |
+| `targetId` | No | `string` | Optional associated target identifier. |
+
+### `log_event`
+
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `level` | Yes | `string` | Host-defined log level. |
+| `message` | Yes | `string` | Human-readable log message. |
+| `emittedAt` | Yes | `string` | RFC 3339 UTC timestamp. |
+| `details` | No | `json` | Optional structured diagnostic payload. |
+
+### `field_diagnostic`
+
+| Field | Required | Type | Notes |
+| --- | --- | --- | --- |
+| `field` | Yes | `string` | Affected field path. |
+| `code` | Yes | `string` | Stable validation code. |
+| `message` | Yes | `string` | Human-readable validation message. |
+| `recovery` | No | `string` | Optional recovery guidance. |
+
 ## Error codes
 
 | Code | Meaning | Typical trigger |
@@ -89,113 +372,107 @@ Optional fields: `binding`, `dearImGuiVersion`, `dearImGuiIdentity`
 | `protocol.invalid_envelope` | Envelope or payload shape is invalid. | Missing required field, invalid UUID, invalid timestamp, malformed JSON. |
 | `protocol.frame_too_large` | Declared frame size exceeds 1 MiB. | Prefix value greater than `1,048,576`. |
 
-## State transitions
+## Negotiation and validation semantics
 
-1. Initiating peer sends one `hello`.
-2. Accepting peer validates frame size, UTF-8, JSON syntax, envelope shape, and payload semantics.
-3. If majors match and required capabilities are shared, the accepting peer returns `welcome`.
-4. Otherwise the accepting peer returns `reject`.
-5. The initiating peer either proceeds using `welcome.negotiatedVersion` or terminates the session after `reject`.
-
-## Negotiation semantics
-
-- Successful negotiation uses the lower supported minor version among peers that share the same major version.
-- `welcome.acceptedCapabilities` is the sorted intersection of the local and remote supported capability sets.
-- `welcome.correlationId` and `reject.correlationId` must echo the initiating `hello.messageId`.
-- Duplicate entries in `supportedCapabilities` or `requiredCapabilities` are treated as `protocol.invalid_envelope`.
-- A major-version mismatch returns `protocol.major_mismatch` together with a recovery message naming the supported protocol line.
-- A missing required capability returns `protocol.required_capability_missing` together with a recovery message naming the missing capability.
-
-## Transport validation semantics
-
-- A receiver rejects a declared frame length greater than `1,048,576` bytes before renting or allocating a payload buffer.
-- Malformed UTF-8, malformed JSON, missing required envelope fields, invalid UUIDs, invalid timestamps, and payload/type mismatches return `protocol.invalid_envelope`.
+- Successful handshake uses the lower supported minor version among peers that
+  share the same major version.
+- `welcome.acceptedCapabilities` is the sorted intersection of the local and
+  remote supported capability sets.
+- `welcome.correlationId` and `reject.correlationId` must echo the initiating
+  `hello.messageId`.
+- Duplicate entries in `supportedCapabilities` or `requiredCapabilities` are
+  treated as `protocol.invalid_envelope`.
 - Unknown optional envelope members are ignored for forward compatibility.
-- Unknown control message types return `protocol.unknown_message_type`.
+- Control messages may carry large JSON payloads only through side channels
+  referenced from the control envelope in later plans; binary frames and large
+  attachments are not base64-encoded into the control stream.
 
-## Cross-language probe contract
+## Story/session semantics
 
-The Task 10 black-box conformance layer ships two one-shot probes:
+- `story_index_published` publishes a host-local complete story set for merge.
+- Story IDs are canonicalized outside the wire format and are compared as
+  language-neutral keys.
+- `story_session_open` starts deterministic services for one story session.
+- `story_session_opened` reports the accepted active argument snapshot.
+- `story_session_reset` restores a deterministic session state.
+- `story_session_closed` terminates a session without implying host shutdown.
+- `argument_patch_result.accepted=false` means the previous accepted value
+  remains authoritative.
+- `target_snapshot` reports named interaction targets without wrapping Dear
+  ImGui widgets.
+- `frame_channel_ready` announces one Windows shared-memory RGBA frame channel
+  per active session.
+- `frame_presented` may drop stale frames at the consumer boundary, but it does
+  not weaken control-message ordering guarantees.
+- `capture_requested` and `capture_completed` support deterministic screenshot
+  workflows without embedding binary image bytes in the control stream.
+- `input_batch` and `viewport_changed` let the catalog drive one host-owned
+  render surface without moving Dear ImGui internal state across processes.
+- `heartbeat` and `host_faulted` provide the runner with restart and diagnostic
+  inputs without conflating host failures with protocol rejection.
 
-- `DearStory.ProtocolProbe.Cpp`
-- `DearStory.ProtocolProbe.DotNet`
+## Representative examples
 
-Each probe supports both directions:
-
-- `serve --pipe <name> --once`
-- `connect --pipe <name> --role <role> [--require <capability>] [--protocol-major <major>] [--protocol-minor <minor>]`
-
-Stable process exit-code categories are:
-
-| Exit code | Category | Meaning |
-| --- | --- | --- |
-| `0` | success | The probe completed the handshake flow and emitted a terminal summary. |
-| `20` | usage | Command-line arguments were invalid. |
-| `21` | pipe | Named-pipe connection or transport I/O failed. |
-| `22` | protocol | Envelope decoding or negotiation failed and produced a terminal reject or protocol diagnostic. |
-| `23` | timeout | The peer did not produce the next required handshake event before the timeout elapsed. |
-
-Timeouts and peer termination before `welcome` are harness-level outcomes rather than wire-level messages, but they are part of the public black-box conformance contract because both native and managed probes report them through the same exit-code categories and diagnostic streams.
-
-## Complete transcript
-
-Request:
+### `story_index_published`
 
 ```json
 {
   "protocol": { "major": 1, "minor": 0 },
-  "type": "hello",
-  "messageId": "11111111-1111-4111-8111-111111111111",
-  "timestamp": "2026-07-15T12:00:00.000Z",
+  "type": "story_index_published",
+  "messageId": "55555555-5555-4555-8555-555555555555",
+  "timestamp": "2026-07-16T09:00:00.000Z",
   "payload": {
-    "role": "host",
-    "implementation": {
-      "name": "DearStory.ProtocolProbe.DotNet",
-      "version": "0.1.0",
-      "language": "csharp",
-      "toolchain": ".NET 10.0",
-      "binding": "ImGui.NET 1.91.6.1",
-      "dearImGuiVersion": "1.91.6",
-      "dearImGuiIdentity": "ImGui.NET/ImGui.NET@8e26803be78b344fd68834817905405b3cdffb94"
+    "hostId": "dotnet-host",
+    "stories": [
+      {
+        "id": "buttons/primary",
+        "title": "Buttons/Primary",
+        "hierarchy": ["Buttons"],
+        "tags": ["controls", "docs"],
+        "description": "Shows the primary button story.",
+        "argumentSchema": {
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "defaultArguments": {
+          "label": "Save"
+        },
+        "capabilities": ["args.patch.v1", "targets.snapshot.v1"]
+      }
+    ]
+  }
+}
+```
+
+### Rejected `argument_patch_result`
+
+```json
+{
+  "protocol": { "major": 1, "minor": 0 },
+  "type": "argument_patch_result",
+  "messageId": "88888888-8888-4888-8888-888888888888",
+  "correlationId": "77777777-7777-4777-8777-777777777777",
+  "sessionId": "66666666-6666-4666-8666-666666666666",
+  "timestamp": "2026-07-16T09:02:00.000Z",
+  "payload": {
+    "sessionId": "66666666-6666-4666-8666-666666666666",
+    "accepted": false,
+    "updatedArguments": {
+      "size": "medium"
     },
-    "supportedCapabilities": ["control.handshake.v1"],
-    "requiredCapabilities": ["control.handshake.v1"]
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "protocol": { "major": 1, "minor": 0 },
-  "type": "welcome",
-  "messageId": "22222222-2222-4222-8222-222222222222",
-  "correlationId": "11111111-1111-4111-8111-111111111111",
-  "timestamp": "2026-07-15T12:00:00.100Z",
-  "payload": {
-    "peerId": "33333333-3333-4333-8333-333333333333",
-    "negotiatedVersion": { "major": 1, "minor": 0 },
-    "acceptedCapabilities": ["control.handshake.v1"]
-  }
-}
-```
-
-Reject example:
-
-```json
-{
-  "protocol": { "major": 1, "minor": 0 },
-  "type": "reject",
-  "messageId": "22222222-2222-4222-8222-222222222222",
-  "correlationId": "11111111-1111-4111-8111-111111111111",
-  "timestamp": "2026-07-15T12:00:00.100Z",
-  "payload": {
-    "error": {
-      "code": "protocol.required_capability_missing",
-      "message": "The remote peer requires an unsupported capability.",
-      "recovery": "Retry with capability control.handshake.v1 or connect to a peer that supports it."
-    }
+    "diagnostics": [
+      {
+        "field": "size",
+        "code": "args.enum",
+        "message": "The value must be one of the declared enum members.",
+        "recovery": "Retry with small, medium, or large."
+      }
+    ]
   }
 }
 ```

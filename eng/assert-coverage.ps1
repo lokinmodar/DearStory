@@ -48,14 +48,76 @@ function Test-IncludedCoverageRecord {
         return $false
     }
 
-    if ($Filename -like '*\src\protocol\cpp\include\*' -or
-        $Filename -like '*\src\protocol\cpp\generated\*' -or
-        $Filename -like 'Generated/*' -or
-        $Filename -like '*.g.cs') {
-        return $false
+    return $null -ne (Get-NormalizedCoverageFilename -PackageName $PackageName -Filename $Filename)
+}
+
+function Get-NormalizedCoverageFilename {
+    param(
+        [string]$PackageName,
+        [string]$Filename
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Filename)) {
+        return $null
     }
 
-    return $true
+    $normalized = $Filename.Replace('/', '\').Trim()
+    if ($normalized -like '*\src\protocol\cpp\include\*' -or
+        $normalized -like '*\src\protocol\cpp\generated\*' -or
+        $normalized -like 'Generated\*' -or
+        $normalized -like '*\Generated\*' -or
+        $normalized -like '*.g.cs') {
+        return $null
+    }
+
+    $includedRoots = @(
+        'src\protocol\cpp\src\',
+        'src\core\cpp\src\',
+        'sdk\cpp\src\',
+        'src\protocol\dotnet\DearStory.Protocol\',
+        'src\core\dotnet\DearStory.Core\',
+        'sdk\dotnet\DearStory.Sdk\',
+        'sdk\dotnet\DearStory.Sdk.Generator\'
+    )
+
+    foreach ($root in $includedRoots) {
+        $index = $normalized.IndexOf($root, [System.StringComparison]::OrdinalIgnoreCase)
+        if ($index -ge 0) {
+            return $normalized.Substring($index)
+        }
+    }
+
+    $legacyRoots = @{
+        'protocol\dotnet\DearStory.Protocol\' = 'src\protocol\dotnet\DearStory.Protocol\'
+        'core\dotnet\DearStory.Core\'         = 'src\core\dotnet\DearStory.Core\'
+    }
+
+    foreach ($legacyRoot in $legacyRoots.Keys) {
+        $index = $normalized.IndexOf($legacyRoot, [System.StringComparison]::OrdinalIgnoreCase)
+        if ($index -ge 0) {
+            return $legacyRoots[$legacyRoot] + $normalized.Substring($index + $legacyRoot.Length)
+        }
+    }
+
+    if ($normalized -like 'tests\*' -or
+        $normalized -like '*\tests\*' -or
+        $normalized -like 'tools\*' -or
+        $normalized -like '*\tools\*') {
+        return $null
+    }
+
+    $managedRootByPackage = @{
+        'DearStory.Protocol'      = 'src\protocol\dotnet\DearStory.Protocol\'
+        'DearStory.Core'          = 'src\core\dotnet\DearStory.Core\'
+        'DearStory.Sdk'           = 'sdk\dotnet\DearStory.Sdk\'
+        'DearStory.Sdk.Generator' = 'sdk\dotnet\DearStory.Sdk.Generator\'
+    }
+
+    if ($managedRootByPackage.ContainsKey($PackageName)) {
+        return $managedRootByPackage[$PackageName] + $normalized.TrimStart('\')
+    }
+
+    return $null
 }
 
 [double]$summaryLinesCovered = 0
@@ -91,11 +153,16 @@ foreach ($path in $CoberturaPaths) {
                 continue
             }
 
+            $normalizedFilename = Get-NormalizedCoverageFilename -PackageName $packageName -Filename $filename
+            if ($null -eq $normalizedFilename) {
+                continue
+            }
+
             $classLines = @($class.lines.line) | Where-Object { $null -ne $_ }
             foreach ($line in $classLines) {
                 $detailedLineCount++
 
-                $lineKey = "$packageName|$filename|$($line.number)"
+                $lineKey = "$normalizedFilename|$($line.number)"
                 $lineCovered = ([int]$line.hits -gt 0)
                 if (-not $lineCoverageMap.ContainsKey($lineKey)) {
                     $lineCoverageMap[$lineKey] = $lineCovered

@@ -8,16 +8,16 @@ namespace DearStory.Protocol.E2ETests;
 internal static class ProcessProbe
 {
     internal static RunningProbe StartNative(params string[] arguments) =>
-        RunningProbe.Start(ResolveNativeExecutable(), arguments);
+        RunningProbe.Start(ProbeArtifacts.ResolveNativeProbe(), arguments);
 
     internal static RunningProbe StartManaged(params string[] arguments) =>
-        RunningProbe.Start(ResolveManagedExecutable(), arguments);
+        RunningProbe.Start(ProbeArtifacts.ResolveManagedProbe(), arguments);
 
     internal static Task<ProbeResult> RunNativeAsync(params string[] arguments) =>
-        RunningProbe.RunOnceAsync(ResolveNativeExecutable(), arguments, TestContext.Current.CancellationToken);
+        RunningProbe.RunOnceAsync(ProbeArtifacts.ResolveNativeProbe(), arguments, TestContext.Current.CancellationToken);
 
     internal static Task<ProbeResult> RunManagedAsync(params string[] arguments) =>
-        RunningProbe.RunOnceAsync(ResolveManagedExecutable(), arguments, TestContext.Current.CancellationToken);
+        RunningProbe.RunOnceAsync(ProbeArtifacts.ResolveManagedProbe(), arguments, TestContext.Current.CancellationToken);
 
     internal static async Task WaitForPipeAsync(string pipeName, CancellationToken cancellationToken)
     {
@@ -41,36 +41,6 @@ internal static class ProcessProbe
             await Task.Delay(25, cancellationToken).ConfigureAwait(false);
         }
     }
-
-    private static string ResolveNativeExecutable() =>
-        Path.Combine(ResolveRepositoryRoot(), "artifacts", "bin", "native", "Debug", "dearstory-protocol-probe-cpp.exe");
-
-    private static string ResolveManagedExecutable() =>
-        Path.Combine(
-            ResolveRepositoryRoot(),
-            "tools",
-            "DearStory.ProtocolProbe.DotNet",
-            "bin",
-            "Debug",
-            "net10.0",
-            "DearStory.ProtocolProbe.DotNet.exe");
-
-    private static string ResolveRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "DearStory.slnx")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate the DearStory repository root.");
-    }
-
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "WaitNamedPipeW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool WaitNamedPipe(string name, int timeout);
