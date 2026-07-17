@@ -45,7 +45,7 @@ jobs:
           git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
           git -C $env:VCPKG_ROOT checkout 1db84273378ff8e2d30e7bc7fdd5d1cb4f4260fc
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
-          New-Item -ItemType Directory -Force -Path .\artifacts\logs, .\artifacts\coverage, .\artifacts\docs | Out-Null
+          New-Item -ItemType Directory -Force -Path .\artifacts\logs, .\artifacts\coverage, .\artifacts\docs, .\.cache\vcpkg\archives, .\.cache\nuget\packages | Out-Null
 
       - name: Doctor
         shell: pwsh
