@@ -4,6 +4,11 @@
   <Folder Name="/src/core/dotnet/">
     <Project Path="src/core/dotnet/DearStory.Core/DearStory.Core.csproj" />
   </Folder>
+  <Folder Name="/sdk/" />
+  <Folder Name="/sdk/dotnet/">
+    <Project Path="sdk/dotnet/DearStory.Sdk/DearStory.Sdk.csproj" />
+    <Project Path="sdk/dotnet/DearStory.Sdk.Generator/DearStory.Sdk.Generator.csproj" />
+  </Folder>
   <Folder Name="/src/protocol/" />
   <Folder Name="/src/protocol/dotnet/">
     <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
@@ -32,6 +37,11 @@
   <Folder Name="/tests/unit/core/" />
   <Folder Name="/tests/unit/core/dotnet/">
     <Project Path="tests/unit/core/dotnet/DearStory.Core.Tests/DearStory.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/sdk/" />
+  <Folder Name="/tests/unit/sdk/dotnet/">
+    <Project Path="tests/unit/sdk/dotnet/DearStory.Sdk.Tests/DearStory.Sdk.Tests.csproj" />
+    <Project Path="tests/unit/sdk/dotnet/DearStory.Sdk.Generator.Tests/DearStory.Sdk.Generator.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/protocol/" />
   <Folder Name="/tests/unit/protocol/dotnet/">
