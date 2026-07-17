@@ -1,0 +1,18 @@
+[workspace]
+name = "windows-slice"
+
+[catalog]
+theme = "dark"
+
+[[hosts]]
+id = "cpp-host"
+builder = "cmake"
+project = "cpp"
+
+[[hosts]]
+id = "dotnet-host"
+builder = "dotnet"
+project = "dotnet"
+
+[[docs]]
+glob = "docs/**/*.md"

@@ -75,7 +75,9 @@
     <Project Path="tests/unit/protocol/dotnet/DearStory.ProtocolGenerator.Tests/DearStory.ProtocolGenerator.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/runner/" />
-  <Folder Name="/tests/unit/runner/dotnet/" />
+  <Folder Name="/tests/unit/runner/dotnet/">
+    <Project Path="tests/unit/runner/dotnet/DearStory.Runner.Tests/DearStory.Runner.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/transports/" />
   <Folder Name="/tests/unit/transports/dotnet/">
     <Project Path="tests/unit/transports/dotnet/DearStory.Transport.Windows.Tests/DearStory.Transport.Windows.Tests.csproj" />
