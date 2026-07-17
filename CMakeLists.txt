@@ -10,9 +10,11 @@ include(CTest)
 
 add_subdirectory(src/protocol/cpp)
 add_subdirectory(src/core/cpp)
+add_subdirectory(sdk/cpp)
 add_subdirectory(tools/DearStory.ProtocolProbe.Cpp)
 
 if(BUILD_TESTING)
     add_subdirectory(tests/unit/core/cpp)
     add_subdirectory(tests/unit/protocol/cpp)
+    add_subdirectory(tests/unit/sdk/cpp)
 endif()
