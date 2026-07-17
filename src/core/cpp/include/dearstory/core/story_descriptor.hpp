@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dearstory/core/story_id.hpp>
+#include <dearstory/core/story_visual_descriptor.hpp>
 
 #include <optional>
 #include <string>
@@ -25,6 +26,8 @@ struct story_descriptor final {
     std::optional<std::string> source_path{};
     /// Stores the declared capability values for the story.
     std::vector<std::string> capabilities{};
+    /// Stores the visual regression metadata for the story.
+    story_visual_descriptor visual{};
 
     /// Creates a minimal story descriptor from a raw ID and title.
     /// \param raw_id The raw story identifier text.

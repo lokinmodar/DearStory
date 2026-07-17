@@ -72,7 +72,8 @@ story_registration::story_registration(
 story_registration story_registration::create(
     std::string_view raw_id,
     story_callback render,
-    argument_metadata arguments)
+    argument_metadata arguments,
+    visual_story_options visual)
 {
     if (render == nullptr)
     {
@@ -87,6 +88,8 @@ story_registration story_registration::create(
 
     auto descriptor = core::story_descriptor::create(raw_id, segments.back());
     descriptor.hierarchy.assign(segments.begin(), segments.end() - 1);
+    descriptor.visual.supports_capture = true;
+    descriptor.visual.include_in_canonical_corpus = visual.include_in_canonical_corpus;
 
     return story_registration(std::move(descriptor), std::move(arguments), render);
 }
