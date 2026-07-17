@@ -174,7 +174,10 @@ public static class ModelEmitter
         {
             "string" => "std::string",
             "uint16" => "std::uint16_t",
+            "int32" => "std::int32_t",
+            "int64" => "std::int64_t",
             "uuid" => "std::string",
+            "timestamp" => "std::string",
             "object" => "nlohmann::json",
             "boolean" => "bool",
             "json" => "nlohmann::json",
@@ -194,7 +197,10 @@ public static class ModelEmitter
         {
             "string" => "string",
             "uint16" => "ushort",
+            "int32" => "int",
+            "int64" => "long",
             "uuid" => "Guid",
+            "timestamp" => "DateTimeOffset",
             "object" => "JsonObject",
             "boolean" => "bool",
             "json" => "JsonNode",

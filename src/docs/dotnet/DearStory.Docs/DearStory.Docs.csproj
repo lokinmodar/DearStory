@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Docs</AssemblyName>
+    <RootNamespace>DearStory.Docs</RootNamespace>
+  </PropertyGroup>
+</Project>

@@ -196,6 +196,84 @@ struct argument_patch_result final {
     friend bool operator==(const argument_patch_result&, const argument_patch_result&) = default;
 };
 
+/// Represents the "capture_completed" generated model.
+struct capture_completed final {
+    /// Stores the value mapped from the "artifactPath" wire field.
+    std::string artifactPath{};
+    /// Stores the value mapped from the "captureId" wire field.
+    std::string captureId{};
+    /// Stores the value mapped from the "height" wire field.
+    std::int32_t height{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "timestampUtc" wire field.
+    std::string timestampUtc{};
+    /// Stores the value mapped from the "width" wire field.
+    std::int32_t width{};
+
+    friend bool operator==(const capture_completed&, const capture_completed&) = default;
+};
+
+/// Represents the "capture_requested" generated model.
+struct capture_requested final {
+    /// Stores the value mapped from the "artifactKey" wire field.
+    std::string artifactKey{};
+    /// Stores the value mapped from the "captureId" wire field.
+    std::string captureId{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+
+    friend bool operator==(const capture_requested&, const capture_requested&) = default;
+};
+
+/// Represents the "frame_channel_ready" generated model.
+struct frame_channel_ready final {
+    /// Stores the value mapped from the "colorSpace" wire field.
+    std::string colorSpace{};
+    /// Stores the value mapped from the "height" wire field.
+    std::int32_t height{};
+    /// Stores the value mapped from the "mappingName" wire field.
+    std::string mappingName{};
+    /// Stores the value mapped from the "pixelFormat" wire field.
+    std::string pixelFormat{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "slotCount" wire field.
+    std::int32_t slotCount{};
+    /// Stores the value mapped from the "stride" wire field.
+    std::int32_t stride{};
+    /// Stores the value mapped from the "width" wire field.
+    std::int32_t width{};
+
+    friend bool operator==(const frame_channel_ready&, const frame_channel_ready&) = default;
+};
+
+/// Represents the "frame_presented" generated model.
+struct frame_presented final {
+    /// Stores the value mapped from the "sequence" wire field.
+    std::int64_t sequence{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "slotIndex" wire field.
+    std::int32_t slotIndex{};
+    /// Stores the value mapped from the "timestampUtc" wire field.
+    std::string timestampUtc{};
+
+    friend bool operator==(const frame_presented&, const frame_presented&) = default;
+};
+
+/// Represents the "heartbeat" generated model.
+struct heartbeat final {
+    /// Stores the value mapped from the "activeSessionCount" wire field.
+    std::int32_t activeSessionCount{};
+    /// Stores the value mapped from the "hostId" wire field.
+    std::string hostId{};
+    /// Stores the value mapped from the "sentAtUtc" wire field.
+    std::string sentAtUtc{};
+
+    friend bool operator==(const heartbeat&, const heartbeat&) = default;
+};
+
 /// Represents the "hello" generated model.
 struct hello final {
     /// Stores the value mapped from the "implementation" wire field.
@@ -208,6 +286,36 @@ struct hello final {
     std::vector<std::string> supportedCapabilities{};
 
     friend bool operator==(const hello&, const hello&) = default;
+};
+
+/// Represents the "host_faulted" generated model.
+struct host_faulted final {
+    /// Stores the value mapped from the "category" wire field.
+    std::string category{};
+    /// Stores the value mapped from the "exitCode" wire field.
+    std::optional<std::int32_t> exitCode{};
+    /// Stores the value mapped from the "hostId" wire field.
+    std::string hostId{};
+    /// Stores the value mapped from the "message" wire field.
+    std::string message{};
+    /// Stores the value mapped from the "processId" wire field.
+    std::optional<std::int32_t> processId{};
+    /// Stores the value mapped from the "recovery" wire field.
+    std::string recovery{};
+
+    friend bool operator==(const host_faulted&, const host_faulted&) = default;
+};
+
+/// Represents the "input_batch" generated model.
+struct input_batch final {
+    /// Stores the value mapped from the "events" wire field.
+    nlohmann::json events{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "timestampUtc" wire field.
+    std::string timestampUtc{};
+
+    friend bool operator==(const input_batch&, const input_batch&) = default;
 };
 
 /// Represents the "log_emitted" generated model.
@@ -308,6 +416,20 @@ struct target_snapshot final {
     std::vector<story_target> targets{};
 
     friend bool operator==(const target_snapshot&, const target_snapshot&) = default;
+};
+
+/// Represents the "viewport_changed" generated model.
+struct viewport_changed final {
+    /// Stores the value mapped from the "height" wire field.
+    std::int32_t height{};
+    /// Stores the value mapped from the "sessionId" wire field.
+    std::string sessionId{};
+    /// Stores the value mapped from the "viewport" wire field.
+    std::optional<nlohmann::json> viewport{};
+    /// Stores the value mapped from the "width" wire field.
+    std::int32_t width{};
+
+    friend bool operator==(const viewport_changed&, const viewport_changed&) = default;
 };
 
 /// Represents the "welcome" generated model.

@@ -10,6 +10,9 @@ internal static class TestManifest
     internal static string Load() =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), "protocol", "control", "messages.json"));
 
+    internal static ProtocolManifest LoadModel() =>
+        ProtocolManifest.Parse(Load());
+
     internal static string WithDuplicateHello
     {
         get

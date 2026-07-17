@@ -1,8 +1,20 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/catalog/" />
+  <Folder Name="/src/catalog/dotnet/">
+    <Project Path="src/catalog/dotnet/DearStory.Catalog/DearStory.Catalog.csproj" />
+  </Folder>
   <Folder Name="/src/core/" />
   <Folder Name="/src/core/dotnet/">
     <Project Path="src/core/dotnet/DearStory.Core/DearStory.Core.csproj" />
+  </Folder>
+  <Folder Name="/src/docs/" />
+  <Folder Name="/src/docs/dotnet/">
+    <Project Path="src/docs/dotnet/DearStory.Docs/DearStory.Docs.csproj" />
+  </Folder>
+  <Folder Name="/src/hosts/" />
+  <Folder Name="/src/hosts/dotnet/">
+    <Project Path="src/hosts/dotnet/DearStory.Host/DearStory.Host.csproj" />
   </Folder>
   <Folder Name="/sdk/" />
   <Folder Name="/sdk/dotnet/">
@@ -12,6 +24,14 @@
   <Folder Name="/src/protocol/" />
   <Folder Name="/src/protocol/dotnet/">
     <Project Path="src/protocol/dotnet/DearStory.Protocol/DearStory.Protocol.csproj" />
+  </Folder>
+  <Folder Name="/src/runner/" />
+  <Folder Name="/src/runner/dotnet/">
+    <Project Path="src/runner/dotnet/DearStory.Runner/DearStory.Runner.csproj" />
+  </Folder>
+  <Folder Name="/src/transports/" />
+  <Folder Name="/src/transports/dotnet/">
+    <Project Path="src/transports/dotnet/DearStory.Transport.Windows/DearStory.Transport.Windows.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/DearStory.ProtocolGenerator/DearStory.ProtocolGenerator.csproj" />
@@ -29,15 +49,21 @@
   <Folder Name="/tests/e2e/protocol/">
     <Project Path="tests/e2e/protocol/DearStory.Protocol.E2ETests/DearStory.Protocol.E2ETests.csproj" />
   </Folder>
+  <Folder Name="/tests/e2e/windows/" />
   <Folder Name="/tests/integration/" />
   <Folder Name="/tests/integration/protocol/">
     <Project Path="tests/integration/protocol/DearStory.Protocol.IntegrationTests/DearStory.Protocol.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tests/integration/windows/" />
   <Folder Name="/tests/unit/" />
+  <Folder Name="/tests/unit/catalog/" />
+  <Folder Name="/tests/unit/catalog/dotnet/" />
   <Folder Name="/tests/unit/core/" />
   <Folder Name="/tests/unit/core/dotnet/">
     <Project Path="tests/unit/core/dotnet/DearStory.Core.Tests/DearStory.Core.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/unit/docs/" />
+  <Folder Name="/tests/unit/docs/dotnet/" />
   <Folder Name="/tests/unit/sdk/" />
   <Folder Name="/tests/unit/sdk/dotnet/">
     <Project Path="tests/unit/sdk/dotnet/DearStory.Sdk.Tests/DearStory.Sdk.Tests.csproj" />
@@ -48,4 +74,12 @@
     <Project Path="tests/unit/protocol/dotnet/DearStory.Protocol.Tests/DearStory.Protocol.Tests.csproj" />
     <Project Path="tests/unit/protocol/dotnet/DearStory.ProtocolGenerator.Tests/DearStory.ProtocolGenerator.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/unit/runner/" />
+  <Folder Name="/tests/unit/runner/dotnet/" />
+  <Folder Name="/tests/unit/transports/" />
+  <Folder Name="/tests/unit/transports/dotnet/" />
+  <Folder Name="/tests/conformance/" />
+  <Folder Name="/tests/conformance/hosts/" />
+  <Folder Name="/tests/visual/" />
+  <Folder Name="/tests/visual/windows/" />
 </Solution>

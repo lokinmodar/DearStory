@@ -181,6 +181,103 @@ Direction: host -> runner/catalog
 | `storyId` | Yes | `string` | Canonical story ID. |
 | `targets` | Yes | `story_target[]` | Stable target IDs and optional semantic metadata. |
 
+### Frames, capture, and host input
+
+#### `frame_channel_ready`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that owns the announced frame channel. |
+| `mappingName` | Yes | `string` | Windows shared-memory mapping name. |
+| `slotCount` | Yes | `int32` | Number of RGBA frame slots in the mapping. |
+| `pixelFormat` | Yes | `string` | Initial baseline requires `rgba8`. |
+| `colorSpace` | Yes | `string` | Initial baseline requires explicit color space metadata. |
+| `width` | Yes | `int32` | Published frame width in pixels. |
+| `height` | Yes | `int32` | Published frame height in pixels. |
+| `stride` | Yes | `int32` | Published row stride in bytes. |
+
+#### `frame_presented`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that rendered the frame. |
+| `slotIndex` | Yes | `int32` | Shared-memory slot containing the newest RGBA frame. |
+| `sequence` | Yes | `int64` | Monotonic frame sequence for stale-frame detection. |
+| `timestampUtc` | Yes | `timestamp` | RFC 3339 UTC timestamp with millisecond precision. |
+
+#### `capture_requested`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session whose frame should be captured. |
+| `captureId` | Yes | `uuid` | Correlates request and completion. |
+| `artifactKey` | Yes | `string` | Stable artifact identifier for output routing. |
+
+#### `capture_completed`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that produced the capture. |
+| `captureId` | Yes | `uuid` | Echoes the associated request. |
+| `artifactPath` | Yes | `string` | Workspace-relative or absolute artifact path recorded by the runner. |
+| `width` | Yes | `int32` | Captured frame width in pixels. |
+| `height` | Yes | `int32` | Captured frame height in pixels. |
+| `timestampUtc` | Yes | `timestamp` | RFC 3339 UTC timestamp with millisecond precision. |
+
+#### `input_batch`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session that should consume the inputs. |
+| `events` | Yes | `json` | Batch of serializable input events supplied by the catalog. |
+| `timestampUtc` | Yes | `timestamp` | Timestamp associated with the batch dispatch. |
+
+#### `viewport_changed`
+
+Direction: runner/catalog -> host
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `sessionId` | Yes | `uuid` | Session whose viewport changed. |
+| `width` | Yes | `int32` | New viewport width in pixels. |
+| `height` | Yes | `int32` | New viewport height in pixels. |
+| `viewport` | No | `json` | Optional structured viewport/DPI/theme metadata. |
+
+### Supervision and recovery
+
+#### `heartbeat`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `hostId` | Yes | `string` | Stable host identity. |
+| `activeSessionCount` | Yes | `int32` | Number of live sessions the host currently owns. |
+| `sentAtUtc` | Yes | `timestamp` | RFC 3339 UTC timestamp with millisecond precision. |
+
+#### `host_faulted`
+
+Direction: host -> runner/catalog
+
+| Field | Required | Type | Validation |
+| --- | --- | --- | --- |
+| `hostId` | Yes | `string` | Stable host identity. |
+| `category` | Yes | `string` | Stable fault category such as `builder_failure`, `crash`, or `timeout`. |
+| `message` | Yes | `string` | Human-readable fault summary. |
+| `recovery` | Yes | `string` | Recommended next action for the runner or user. |
+| `processId` | No | `int32` | Optional native process ID. |
+| `exitCode` | No | `int32` | Optional process exit code when known. |
+
 ## Shared records
 
 ### `protocol_version`
@@ -303,6 +400,16 @@ Optional fields: `role`, `accessibleName`, `description`
   remains authoritative.
 - `target_snapshot` reports named interaction targets without wrapping Dear
   ImGui widgets.
+- `frame_channel_ready` announces one Windows shared-memory RGBA frame channel
+  per active session.
+- `frame_presented` may drop stale frames at the consumer boundary, but it does
+  not weaken control-message ordering guarantees.
+- `capture_requested` and `capture_completed` support deterministic screenshot
+  workflows without embedding binary image bytes in the control stream.
+- `input_batch` and `viewport_changed` let the catalog drive one host-owned
+  render surface without moving Dear ImGui internal state across processes.
+- `heartbeat` and `host_faulted` provide the runner with restart and diagnostic
+  inputs without conflating host failures with protocol rejection.
 
 ## Representative examples
 

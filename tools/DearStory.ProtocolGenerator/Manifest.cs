@@ -58,7 +58,10 @@ public sealed class ProtocolManifest
             {
                 "string",
                 "uint16",
+                "int32",
+                "int64",
                 "uuid",
+                "timestamp",
                 "object",
                 "boolean",
                 "json"

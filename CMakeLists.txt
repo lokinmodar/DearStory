@@ -10,6 +10,8 @@ include(CTest)
 
 add_subdirectory(src/protocol/cpp)
 add_subdirectory(src/core/cpp)
+add_subdirectory(src/transports/cpp)
+add_subdirectory(src/hosts/cpp)
 add_subdirectory(sdk/cpp)
 add_subdirectory(tools/DearStory.ProtocolProbe.Cpp)
 

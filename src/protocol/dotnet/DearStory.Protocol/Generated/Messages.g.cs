@@ -279,6 +279,122 @@ public sealed record ArgumentPatchResult
     public required JsonNode UpdatedArguments { get; init; }
 }
 
+/// <summary>Represents the "capture_completed" generated model.</summary>
+public sealed record CaptureCompleted
+{
+    /// <summary>Gets or sets the value mapped from the "artifactPath" wire field.</summary>
+    [JsonPropertyName("artifactPath")]
+    public required string ArtifactPath { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "captureId" wire field.</summary>
+    [JsonPropertyName("captureId")]
+    public required Guid CaptureId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "height" wire field.</summary>
+    [JsonPropertyName("height")]
+    public required int Height { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "timestampUtc" wire field.</summary>
+    [JsonPropertyName("timestampUtc")]
+    public required DateTimeOffset TimestampUtc { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "width" wire field.</summary>
+    [JsonPropertyName("width")]
+    public required int Width { get; init; }
+}
+
+/// <summary>Represents the "capture_requested" generated model.</summary>
+public sealed record CaptureRequested
+{
+    /// <summary>Gets or sets the value mapped from the "artifactKey" wire field.</summary>
+    [JsonPropertyName("artifactKey")]
+    public required string ArtifactKey { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "captureId" wire field.</summary>
+    [JsonPropertyName("captureId")]
+    public required Guid CaptureId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+}
+
+/// <summary>Represents the "frame_channel_ready" generated model.</summary>
+public sealed record FrameChannelReady
+{
+    /// <summary>Gets or sets the value mapped from the "colorSpace" wire field.</summary>
+    [JsonPropertyName("colorSpace")]
+    public required string ColorSpace { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "height" wire field.</summary>
+    [JsonPropertyName("height")]
+    public required int Height { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "mappingName" wire field.</summary>
+    [JsonPropertyName("mappingName")]
+    public required string MappingName { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "pixelFormat" wire field.</summary>
+    [JsonPropertyName("pixelFormat")]
+    public required string PixelFormat { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "slotCount" wire field.</summary>
+    [JsonPropertyName("slotCount")]
+    public required int SlotCount { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "stride" wire field.</summary>
+    [JsonPropertyName("stride")]
+    public required int Stride { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "width" wire field.</summary>
+    [JsonPropertyName("width")]
+    public required int Width { get; init; }
+}
+
+/// <summary>Represents the "frame_presented" generated model.</summary>
+public sealed record FramePresented
+{
+    /// <summary>Gets or sets the value mapped from the "sequence" wire field.</summary>
+    [JsonPropertyName("sequence")]
+    public required long Sequence { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "slotIndex" wire field.</summary>
+    [JsonPropertyName("slotIndex")]
+    public required int SlotIndex { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "timestampUtc" wire field.</summary>
+    [JsonPropertyName("timestampUtc")]
+    public required DateTimeOffset TimestampUtc { get; init; }
+}
+
+/// <summary>Represents the "heartbeat" generated model.</summary>
+public sealed record Heartbeat
+{
+    /// <summary>Gets or sets the value mapped from the "activeSessionCount" wire field.</summary>
+    [JsonPropertyName("activeSessionCount")]
+    public required int ActiveSessionCount { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "hostId" wire field.</summary>
+    [JsonPropertyName("hostId")]
+    public required string HostId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sentAtUtc" wire field.</summary>
+    [JsonPropertyName("sentAtUtc")]
+    public required DateTimeOffset SentAtUtc { get; init; }
+}
+
 /// <summary>Represents the "hello" generated model.</summary>
 public sealed record Hello
 {
@@ -297,6 +413,50 @@ public sealed record Hello
     /// <summary>Gets or sets the value mapped from the "supportedCapabilities" wire field.</summary>
     [JsonPropertyName("supportedCapabilities")]
     public required IReadOnlyList<string> SupportedCapabilities { get; init; }
+}
+
+/// <summary>Represents the "host_faulted" generated model.</summary>
+public sealed record HostFaulted
+{
+    /// <summary>Gets or sets the value mapped from the "category" wire field.</summary>
+    [JsonPropertyName("category")]
+    public required string Category { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "exitCode" wire field.</summary>
+    [JsonPropertyName("exitCode")]
+    public int? ExitCode { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "hostId" wire field.</summary>
+    [JsonPropertyName("hostId")]
+    public required string HostId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "message" wire field.</summary>
+    [JsonPropertyName("message")]
+    public required string Message { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "processId" wire field.</summary>
+    [JsonPropertyName("processId")]
+    public int? ProcessId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "recovery" wire field.</summary>
+    [JsonPropertyName("recovery")]
+    public required string Recovery { get; init; }
+}
+
+/// <summary>Represents the "input_batch" generated model.</summary>
+public sealed record InputBatch
+{
+    /// <summary>Gets or sets the value mapped from the "events" wire field.</summary>
+    [JsonPropertyName("events")]
+    public required JsonNode Events { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "timestampUtc" wire field.</summary>
+    [JsonPropertyName("timestampUtc")]
+    public required DateTimeOffset TimestampUtc { get; init; }
 }
 
 /// <summary>Represents the "log_emitted" generated model.</summary>
@@ -433,6 +593,26 @@ public sealed record TargetSnapshot
     /// <summary>Gets or sets the value mapped from the "targets" wire field.</summary>
     [JsonPropertyName("targets")]
     public required IReadOnlyList<StoryTarget> Targets { get; init; }
+}
+
+/// <summary>Represents the "viewport_changed" generated model.</summary>
+public sealed record ViewportChanged
+{
+    /// <summary>Gets or sets the value mapped from the "height" wire field.</summary>
+    [JsonPropertyName("height")]
+    public required int Height { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "sessionId" wire field.</summary>
+    [JsonPropertyName("sessionId")]
+    public required Guid SessionId { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "viewport" wire field.</summary>
+    [JsonPropertyName("viewport")]
+    public JsonNode? Viewport { get; init; }
+
+    /// <summary>Gets or sets the value mapped from the "width" wire field.</summary>
+    [JsonPropertyName("width")]
+    public required int Width { get; init; }
 }
 
 /// <summary>Represents the "welcome" generated model.</summary>

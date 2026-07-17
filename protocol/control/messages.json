@@ -550,6 +550,231 @@
           "required": true
         }
       ]
+    },
+    {
+      "name": "frame_channel_ready",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "mappingName",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "slotCount",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "pixelFormat",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "colorSpace",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "width",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "stride",
+          "type": "int32",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "frame_presented",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "slotIndex",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "sequence",
+          "type": "int64",
+          "required": true
+        },
+        {
+          "name": "timestampUtc",
+          "type": "timestamp",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "capture_requested",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "captureId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "artifactKey",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "capture_completed",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "captureId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "artifactPath",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "width",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "timestampUtc",
+          "type": "timestamp",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "input_batch",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "events",
+          "type": "json",
+          "required": true
+        },
+        {
+          "name": "timestampUtc",
+          "type": "timestamp",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "viewport_changed",
+      "fields": [
+        {
+          "name": "sessionId",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "width",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "height",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "viewport",
+          "type": "json",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "heartbeat",
+      "fields": [
+        {
+          "name": "hostId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "activeSessionCount",
+          "type": "int32",
+          "required": true
+        },
+        {
+          "name": "sentAtUtc",
+          "type": "timestamp",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "host_faulted",
+      "fields": [
+        {
+          "name": "hostId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "recovery",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "processId",
+          "type": "int32",
+          "required": false
+        },
+        {
+          "name": "exitCode",
+          "type": "int32",
+          "required": false
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,2 @@
+add_library(dearstory_transports_cpp INTERFACE)
+add_library(DearStory::TransportsCpp ALIAS dearstory_transports_cpp)
