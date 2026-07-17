@@ -20,6 +20,6 @@ public sealed record StoryVisualDescriptor
     /// <summary>
     /// Gets a value indicating whether this story opts into the canonical visual corpus.
     /// </summary>
-    /// <value><see langword="true" /> when the story is part of the canonical visual corpus.</value>
-    public bool IncludeInCanonicalCorpus { get; init; }
+    /// <value><see langword="true" /> when the story is part of the canonical visual corpus; otherwise, <see langword="false" />. The default is <see langword="false" />.</value>
+    public bool IncludeInCanonicalCorpus { get; init; } = false;
 }
