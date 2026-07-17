@@ -3,4 +3,14 @@
     <AssemblyName>DearStory.Catalog</AssemblyName>
     <RootNamespace>DearStory.Catalog</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ImGui.NET" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+    <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
+    <ProjectReference Include="..\..\..\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
+  </ItemGroup>
 </Project>

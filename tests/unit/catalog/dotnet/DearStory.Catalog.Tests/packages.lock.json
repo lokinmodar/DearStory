@@ -181,16 +181,6 @@
       "dearstory.protocol": {
         "type": "Project"
       },
-      "dearstory.runner": {
-        "type": "Project",
-        "dependencies": {
-          "DearStory.Catalog": "[1.0.0, )",
-          "DearStory.Core": "[1.0.0, )",
-          "DearStory.Protocol": "[1.0.0, )",
-          "DearStory.Transport.Windows": "[1.0.0, )",
-          "Tomlyn": "[2.9.0, )"
-        }
-      },
       "dearstory.transport.windows": {
         "type": "Project"
       },
@@ -199,12 +189,6 @@
         "requested": "[1.91.6.1, )",
         "resolved": "1.91.6.1",
         "contentHash": "Ph3j8pO6UM28PPJWP+5LEJSPVPkd8ivpVS8tRyY9b0IHn1HDIrMZ2o/FdiXaYW6YhNxMHmbevw6Jcfs+IDKi0Q=="
-      },
-      "Tomlyn": {
-        "type": "CentralTransitive",
-        "requested": "[2.9.0, )",
-        "resolved": "2.9.0",
-        "contentHash": "gpMEqCwLkIfHZI4PurJDqCFEAHaW2A+Zny73RDE9NK2/p39acmBKzaFEAhpHrUgcah6Nslm8JyxReQPJJRIF+A=="
       }
     }
   }

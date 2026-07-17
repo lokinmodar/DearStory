@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+    <ProjectReference Include="..\..\..\catalog\dotnet\DearStory.Catalog\DearStory.Catalog.csproj" />
     <ProjectReference Include="..\..\..\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
     <ProjectReference Include="..\..\..\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
   </ItemGroup>

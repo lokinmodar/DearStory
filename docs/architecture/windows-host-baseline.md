@@ -35,7 +35,9 @@ flowchart LR
 - `DearStory.Runner`: configuration loading, builders, supervision, diagnostics,
   restart policy, and deterministic capture orchestration.
 - `DearStory.Catalog`: story tree, preview, schema-driven controls, logs,
-  actions, and host-health surfaces.
+  actions, and host-health surfaces. The catalog stays runner-agnostic: it
+  consumes catalog-owned preview and host-health snapshots so the dependency
+  direction remains `DearStory.Runner -> DearStory.Catalog`.
 - `DearStory.Docs`: Markdown, Doc Blocks, autodocs, and static HTML emission.
 - `DearStory.Transport.Windows`: managed transport helpers for control and
   shared-memory frame reads/writes.
@@ -49,3 +51,5 @@ flowchart LR
 - Control messages describe state, requests, and diagnostics.
 - Shared-memory frame slots carry pixels only.
 - Catalog and docs consume merged story metadata rather than host internals.
+- Runner-owned supervision data is adapted into catalog-owned snapshots before
+  it crosses the runner/catalog boundary.

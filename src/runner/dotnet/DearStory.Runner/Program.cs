@@ -1,7 +1,9 @@
 using DearStory.Runner.Commands;
+using System.Runtime.Versioning;
 
 namespace DearStory.Runner;
 
+[SupportedOSPlatform("windows")]
 internal static class Program
 {
     private static readonly string HelpText =
