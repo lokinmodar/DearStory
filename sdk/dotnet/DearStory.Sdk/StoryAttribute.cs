@@ -19,4 +19,10 @@ public sealed class StoryAttribute(string id, Type argsType) : Attribute
     /// </summary>
     /// <value>The argument type.</value>
     public Type ArgsType { get; } = argsType;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the story is part of the canonical visual corpus by default.
+    /// </summary>
+    /// <value><see langword="true" /> when the story opts into the canonical visual corpus.</value>
+    public bool IncludeInCanonicalCorpus { get; init; }
 }

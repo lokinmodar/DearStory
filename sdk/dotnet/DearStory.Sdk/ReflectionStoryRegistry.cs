@@ -60,7 +60,7 @@ public static class ReflectionStoryRegistry
             }
 
             var callback = (StoryCallback)Delegate.CreateDelegate(typeof(StoryCallback), method);
-            var descriptor = BuildDescriptor(storyAttribute.Id);
+            var descriptor = BuildDescriptor(storyAttribute);
             var arguments = BuildArguments(storyAttribute.ArgsType);
             return new GeneratedStoryRegistration
             {
@@ -72,8 +72,9 @@ public static class ReflectionStoryRegistry
             };
         }
 
-        private static StoryDescriptor BuildDescriptor(string rawId)
+        private static StoryDescriptor BuildDescriptor(StoryAttribute storyAttribute)
         {
+            var rawId = storyAttribute.Id;
             var segments = rawId
                 .Trim()
                 .Replace('\\', '/')
@@ -87,6 +88,11 @@ public static class ReflectionStoryRegistry
             return StoryDescriptor.Create(rawId, title) with
             {
                 Hierarchy = segments.Take(Math.Max(segments.Length - 1, 0)).ToArray(),
+                Visual = new StoryVisualDescriptor
+                {
+                    SupportsCapture = true,
+                    IncludeInCanonicalCorpus = storyAttribute.IncludeInCanonicalCorpus,
+                },
             };
         }
 
