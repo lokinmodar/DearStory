@@ -77,7 +77,9 @@
   <Folder Name="/tests/unit/runner/" />
   <Folder Name="/tests/unit/runner/dotnet/" />
   <Folder Name="/tests/unit/transports/" />
-  <Folder Name="/tests/unit/transports/dotnet/" />
+  <Folder Name="/tests/unit/transports/dotnet/">
+    <Project Path="tests/unit/transports/dotnet/DearStory.Transport.Windows.Tests/DearStory.Transport.Windows.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/conformance/" />
   <Folder Name="/tests/conformance/hosts/" />
   <Folder Name="/tests/visual/" />

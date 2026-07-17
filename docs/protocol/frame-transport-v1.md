@@ -34,7 +34,12 @@ through shared memory and is referenced by control messages such as
 
 - Mapping names are treated as opaque strings by the protocol.
 - Writers and readers must agree on slot count, frame dimensions, and stride.
-- Slot payload layout is transport-private; only the announced descriptor is
-  protocol-visible at this stage.
+- The first 16 bytes of each slot are reserved for transport metadata:
+  - bytes `0..7`: little-endian signed 64-bit monotonic `sequence`
+  - bytes `8..11`: little-endian signed 32-bit `payloadLength`
+  - bytes `12..15`: reserved for future metadata and currently written as padding
+  - bytes `16..`: raw RGBA8 payload bytes
+- Writers publish the sequence after they finish writing the payload so readers
+  can ignore incomplete slot updates.
 - The baseline contract is intentionally portable so a future D3D11
   shared-texture transport can sit behind the same control messages.
