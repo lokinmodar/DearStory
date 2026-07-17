@@ -54,7 +54,9 @@
   <Folder Name="/tests/integration/protocol/">
     <Project Path="tests/integration/protocol/DearStory.Protocol.IntegrationTests/DearStory.Protocol.IntegrationTests.csproj" />
   </Folder>
-  <Folder Name="/tests/integration/windows/" />
+  <Folder Name="/tests/integration/windows/">
+    <Project Path="tests/integration/windows/DearStory.WindowsSlice.Tests/DearStory.WindowsSlice.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/" />
   <Folder Name="/tests/unit/catalog/" />
   <Folder Name="/tests/unit/catalog/dotnet/">

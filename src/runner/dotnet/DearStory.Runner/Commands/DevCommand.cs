@@ -3,8 +3,11 @@ using DearStory.Catalog.Controls;
 using DearStory.Catalog.Preview;
 using DearStory.Core;
 using System.Runtime.Versioning;
+using DearStory.Runner.Builders;
 using DearStory.Runner.Configuration;
+using DearStory.Runner.State;
 using DearStory.Runner.Supervision;
+using DearStory.Runner.Watching;
 
 namespace DearStory.Runner.Commands;
 
@@ -21,6 +24,11 @@ public sealed class DevCommand
     {
         var configuration = WorkspaceConfigurationLoader.Load(workspacePath);
         InitializeCatalog(configuration);
+        _ = new SerializableSessionState();
+        using var watcher = new WorkspaceWatcher();
+        watcher.Start();
+        _ = CreateBuilders(configuration);
+        _ = new RestartPlanner();
         var supervisor = new HostSupervisor();
 
         foreach (var host in configuration.Hosts)
@@ -43,5 +51,23 @@ public sealed class DevCommand
         var presenter = new CatalogSessionPresenter(new StoryCatalog(), new PreviewFrameState(), new SchemaControlFactory());
         presenter.UpdateStories(Array.Empty<StoryDescriptor>());
         _ = configuration.Catalog.Theme;
+    }
+
+    private static IReadOnlyDictionary<string, IHostBuilder> CreateBuilders(WorkspaceConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var builders = new Dictionary<string, IHostBuilder>(StringComparer.OrdinalIgnoreCase);
+        foreach (var host in configuration.Hosts)
+        {
+            builders[host.Id] = host.Builder switch
+            {
+                "cmake" => new CMakeHostBuilder(),
+                "dotnet" => new DotNetHostBuilder(),
+                _ => throw new InvalidOperationException($"The builder '{host.Builder}' is not supported by the Windows runner."),
+            };
+        }
+
+        return builders;
     }
 }
