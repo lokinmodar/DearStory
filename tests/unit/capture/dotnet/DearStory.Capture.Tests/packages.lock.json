@@ -164,6 +164,18 @@
         }
       },
       "dearstory.capture": {
+        "type": "Project",
+        "dependencies": {
+          "DearStory.Core": "[1.0.0, )"
+        }
+      },
+      "dearstory.core": {
+        "type": "Project",
+        "dependencies": {
+          "DearStory.Protocol": "[1.0.0, )"
+        }
+      },
+      "dearstory.protocol": {
         "type": "Project"
       }
     }

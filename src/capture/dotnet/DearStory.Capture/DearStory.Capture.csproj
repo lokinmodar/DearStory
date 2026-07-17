@@ -3,4 +3,8 @@
     <AssemblyName>DearStory.Capture</AssemblyName>
     <RootNamespace>DearStory.Capture</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+  </ItemGroup>
 </Project>

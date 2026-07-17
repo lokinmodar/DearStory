@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\src\capture\dotnet\DearStory.Capture\DearStory.Capture.csproj" />
+    <ProjectReference Include="..\..\..\..\..\src\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
