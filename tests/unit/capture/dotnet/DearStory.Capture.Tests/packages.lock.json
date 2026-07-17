@@ -18,6 +18,15 @@
           "Microsoft.TestPlatform.TestHost": "18.8.1"
         }
       },
+      "System.Drawing.Common": {
+        "type": "Direct",
+        "requested": "[10.0.10, )",
+        "resolved": "10.0.10",
+        "contentHash": "R9q9TI//kGavXWTxvaSS9ERj79s+Vm7V7769zEmRbzdrIOJzAnGw+wWSo/JkaVdQfAAefV2V1bWYKCHF7Zs5oQ==",
+        "dependencies": {
+          "Microsoft.Win32.SystemEvents": "10.0.10"
+        }
+      },
       "xunit.runner.visualstudio": {
         "type": "Direct",
         "requested": "[3.1.5, )",
@@ -96,6 +105,11 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "Microsoft.Win32.SystemEvents": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "IY0lTfC2uVwTizjtGgQ03ViwyXGQ9lMDblzB889/HyguAZJ2J8pRrjPown8h2eJe8WFc8nh+BUEsEPkshzizYQ=="
+      },
       "xunit.analyzers": {
         "type": "Transitive",
         "resolved": "1.27.0",
@@ -166,7 +180,8 @@
       "dearstory.capture": {
         "type": "Project",
         "dependencies": {
-          "DearStory.Core": "[1.0.0, )"
+          "DearStory.Core": "[1.0.0, )",
+          "System.Drawing.Common": "[10.0.10, )"
         }
       },
       "dearstory.core": {

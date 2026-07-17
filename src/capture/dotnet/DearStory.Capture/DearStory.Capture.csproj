@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" />
     <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
   </ItemGroup>
 </Project>
