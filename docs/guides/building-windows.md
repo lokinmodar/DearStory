@@ -15,6 +15,8 @@ Use `pwsh -NoProfile -File .\eng\build.ps1 -Configuration Debug` to run the nati
 
 Use `dotnet run --project .\src\runner\dotnet\DearStory.Runner\DearStory.Runner.csproj -- build .\examples\workspaces\windows-slice --configuration Release` to emit the current static-docs slice into `artifacts\docs`.
 
+The runner resolves host artifacts against the active Debug or Release build output. `dearstory build --configuration <value>` overrides that selection explicitly; when the option is omitted, the runner uses the current process configuration so Debug and Release verification stay aligned with the built host binaries.
+
 For Release verification with coverage, use:
 
 - `pwsh -NoProfile -File .\eng\build.ps1 -Configuration Release`

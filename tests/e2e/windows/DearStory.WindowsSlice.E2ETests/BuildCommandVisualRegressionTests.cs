@@ -1,3 +1,4 @@
+using DearStory.Testing;
 using Xunit;
 
 namespace DearStory.WindowsSlice.E2ETests;
@@ -12,7 +13,7 @@ public sealed class BuildCommandVisualRegressionTests
         var result = await DearStoryCommand.RunAsync(
             "build",
             ".\\examples\\workspaces\\windows-slice",
-            "--configuration", "Release",
+            "--configuration", CurrentBuildConfiguration.CurrentConfiguration(),
             "--visual-backend", "warp");
 
         Assert.Equal(0, result.ExitCode);
@@ -28,7 +29,7 @@ public sealed class BuildCommandVisualRegressionTests
         var result = await DearStoryCommand.RunAsync(
             "build",
             ".\\examples\\workspaces\\windows-slice",
-            "--configuration", "Release",
+            "--configuration", CurrentBuildConfiguration.CurrentConfiguration(),
             "--visual-backend", "gpu",
             "--approve");
 

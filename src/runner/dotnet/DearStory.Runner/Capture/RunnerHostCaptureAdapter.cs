@@ -11,16 +11,19 @@ namespace DearStory.Runner.Capture;
 public sealed class RunnerHostCaptureAdapter : IVisualFrameSource
 {
     private readonly WorkspaceConfiguration _configuration;
+    private readonly string _buildConfiguration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RunnerHostCaptureAdapter" /> class.
     /// </summary>
     /// <param name="configuration">The loaded workspace configuration that defines the available hosts.</param>
+    /// <param name="buildConfiguration">The optional build configuration that resolves host artifacts for capture.</param>
     /// <exception cref="ArgumentNullException"><paramref name="configuration" /> is <see langword="null" />.</exception>
-    public RunnerHostCaptureAdapter(WorkspaceConfiguration configuration)
+    public RunnerHostCaptureAdapter(WorkspaceConfiguration configuration, string? buildConfiguration = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         _configuration = configuration;
+        _buildConfiguration = HostArtifactPathResolver.ResolveBuildConfiguration(buildConfiguration);
     }
 
     /// <inheritdoc />
@@ -37,7 +40,7 @@ public sealed class RunnerHostCaptureAdapter : IVisualFrameSource
 
         foreach (var host in _configuration.Hosts)
         {
-            await using var session = await RunnerHostCaptureSession.StartAsync(_configuration, host, cancellationToken).ConfigureAwait(false);
+            await using var session = await RunnerHostCaptureSession.StartAsync(_configuration, host, _buildConfiguration, cancellationToken).ConfigureAwait(false);
             if (!PublishesStory(session.PublishedStoryIds, storyId))
             {
                 foreach (var publishedStoryId in session.PublishedStoryIds)

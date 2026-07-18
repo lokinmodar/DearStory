@@ -62,16 +62,19 @@ public sealed class RunnerHostCaptureSession : IAsyncDisposable
     /// </summary>
     /// <param name="configuration">The workspace configuration that owns the host definition.</param>
     /// <param name="host">The host definition to start.</param>
+    /// <param name="buildConfiguration">The build configuration that resolves the host executable artifacts.</param>
     /// <param name="cancellationToken">The cancellation token that aborts startup.</param>
     /// <returns>A connected host capture session.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="configuration" /> or <paramref name="host" /> is <see langword="null" />.</exception>
     public static async Task<RunnerHostCaptureSession> StartAsync(
         WorkspaceConfiguration configuration,
         HostConfiguration host,
+        string buildConfiguration,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(host);
+        ArgumentException.ThrowIfNullOrWhiteSpace(buildConfiguration);
 
         var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         lifetime.CancelAfter(TimeSpan.FromSeconds(20));
@@ -79,7 +82,7 @@ public sealed class RunnerHostCaptureSession : IAsyncDisposable
         var pipeName = $"dearstory-host-{Guid.NewGuid():N}";
         var server = new NamedPipeControlServer(pipeName);
         var repositoryRoot = ResolveRepositoryRoot(configuration.Workspace.RootPath);
-        var process = StartHost(repositoryRoot, pipeName, host.Id);
+        var process = StartHost(repositoryRoot, pipeName, host.Id, buildConfiguration);
 
         try
         {
@@ -237,17 +240,17 @@ public sealed class RunnerHostCaptureSession : IAsyncDisposable
         _lifetime.Dispose();
     }
 
-    private static Process StartHost(string repositoryRoot, string pipeName, string hostId) =>
+    private static Process StartHost(string repositoryRoot, string pipeName, string hostId, string buildConfiguration) =>
         hostId switch
         {
-            "cpp-host" => StartNativeHost(repositoryRoot, pipeName, hostId),
-            "dotnet-host" => StartManagedHost(repositoryRoot, pipeName, hostId),
+            "cpp-host" => StartNativeHost(repositoryRoot, pipeName, hostId, buildConfiguration),
+            "dotnet-host" => StartManagedHost(repositoryRoot, pipeName, hostId, buildConfiguration),
             _ => throw new ArgumentOutOfRangeException(nameof(hostId), hostId, "The requested host is not supported by the runner capture session."),
         };
 
-    private static Process StartNativeHost(string repositoryRoot, string pipeName, string hostId)
+    private static Process StartNativeHost(string repositoryRoot, string pipeName, string hostId, string buildConfiguration)
     {
-        var executablePath = Path.Combine(repositoryRoot, "artifacts", "bin", "native", "Release", "dearstory-host-cpp.exe");
+        var executablePath = HostArtifactPathResolver.ResolveNativeHostExecutable(repositoryRoot, buildConfiguration);
         if (!File.Exists(executablePath))
         {
             throw new FileNotFoundException("The native DearStory host executable was not found. Run the standard build before executing visual capture.", executablePath);
@@ -256,18 +259,9 @@ public sealed class RunnerHostCaptureSession : IAsyncDisposable
         return StartProcess(executablePath, repositoryRoot, pipeName, hostId);
     }
 
-    private static Process StartManagedHost(string repositoryRoot, string pipeName, string hostId)
+    private static Process StartManagedHost(string repositoryRoot, string pipeName, string hostId, string buildConfiguration)
     {
-        var executablePath = Path.Combine(
-            repositoryRoot,
-            "src",
-            "hosts",
-            "dotnet",
-            "DearStory.Host",
-            "bin",
-            "Release",
-            "net10.0",
-            "DearStory.Host.exe");
+        var executablePath = HostArtifactPathResolver.ResolveManagedHostExecutable(repositoryRoot, buildConfiguration);
 
         if (!File.Exists(executablePath))
         {

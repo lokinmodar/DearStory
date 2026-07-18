@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using DearStory.Testing;
 using DearStory.Protocol;
 using DearStory.Protocol.Generated;
 using DearStory.Protocol.Windows;
@@ -185,7 +186,8 @@ internal sealed class HostHarness : IAsyncDisposable
     private static Process StartNativeHost(string pipeName, string hostId)
     {
         var repositoryRoot = ResolveRepositoryRoot();
-        var executablePath = Path.Combine(repositoryRoot, "artifacts", "bin", "native", "Release", "dearstory-host-cpp.exe");
+        var buildConfiguration = CurrentBuildConfiguration.CurrentConfiguration();
+        var executablePath = Path.Combine(repositoryRoot, "artifacts", "bin", "native", buildConfiguration, "dearstory-host-cpp.exe");
         if (!File.Exists(executablePath))
         {
             throw new FileNotFoundException("The native DearStory host executable was not found. Build the host before running conformance tests.", executablePath);
@@ -208,6 +210,7 @@ internal sealed class HostHarness : IAsyncDisposable
     private static Process StartManagedHost(string pipeName, string hostId)
     {
         var repositoryRoot = ResolveRepositoryRoot();
+        var buildConfiguration = CurrentBuildConfiguration.CurrentConfiguration();
         var executablePath = Path.Combine(
             repositoryRoot,
             "src",
@@ -215,7 +218,7 @@ internal sealed class HostHarness : IAsyncDisposable
             "dotnet",
             "DearStory.Host",
             "bin",
-            "Release",
+            buildConfiguration,
             "net10.0",
             "DearStory.Host.exe");
 
