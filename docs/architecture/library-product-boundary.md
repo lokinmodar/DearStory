@@ -1,10 +1,19 @@
 # DearStory library product boundary
 
-Public .NET packages in phase 2:
+Phase 2 public products:
 
-- DearStory.Protocol
-- DearStory.Core
-- DearStory.Sdk
-- DearStory.Sdk.Generator
+| Language | Public product |
+| --- | --- |
+| .NET | DearStory.Protocol |
+| .NET | DearStory.Core |
+| .NET | DearStory.Sdk |
+| .NET | DearStory.Sdk.Generator |
+| C++ | DearStory::ProtocolCpp |
+| C++ | DearStory::CoreCpp |
+| C++ | DearStory::SdkCpp |
 
-These packages must not depend on Runner, Catalog, Host, Capture, Docs, or Transport.Windows.
+Only the four .NET products explicitly opt in to NuGet packaging; all other
+.NET projects are non-packable by default.
+
+The public products must not depend on Runner, Catalog, Host, Capture, Docs,
+or Transport.Windows.

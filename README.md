@@ -13,10 +13,12 @@ DearStory now has active implementation for the Windows-first protocol bootstrap
 and the shared core story model. The public API surface is still pre-1.0 and
 may change as host/runtime work continues.
 
-Phase 2 public .NET packages are `DearStory.Protocol`, `DearStory.Core`,
-`DearStory.Sdk`, and `DearStory.Sdk.Generator`. Runner, Catalog, Host,
-Capture, Docs, and Transport.Windows remain internal while the Windows-first
-runtime tooling matures.
+Phase 2 public products are the .NET packages `DearStory.Protocol`,
+`DearStory.Core`, `DearStory.Sdk`, and `DearStory.Sdk.Generator`, plus the C++
+targets `DearStory::ProtocolCpp`, `DearStory::CoreCpp`, and
+`DearStory::SdkCpp`. Runner, Catalog, Host, Capture, Docs, and
+Transport.Windows remain internal while the Windows-first runtime tooling
+matures.
 
 The approved architecture is documented in
 [`docs/superpowers/specs/2026-07-15-dearstory-design.md`](docs/superpowers/specs/2026-07-15-dearstory-design.md).

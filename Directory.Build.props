@@ -9,6 +9,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <VersionPrefix>0.1.0-alpha</VersionPrefix>
+    <!-- Library projects must explicitly opt in to package publication. -->
+    <IsPackable>false</IsPackable>
     <Authors>Dante</Authors>
     <Company>Dante</Company>
     <RepositoryUrl>https://github.com/lokinmodar/DearStory</RepositoryUrl>
