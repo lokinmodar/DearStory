@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DearStory.Capture</AssemblyName>
+    <RootNamespace>DearStory.Capture</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" />
+    <ProjectReference Include="..\..\..\core\dotnet\DearStory.Core\DearStory.Core.csproj" />
+  </ItemGroup>
+</Project>

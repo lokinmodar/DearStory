@@ -35,7 +35,7 @@ internal static class Program
         {
             return args[0] switch
             {
-                "dev" => (int)await new DevCommand().ExecuteAsync(args[1], CancellationToken.None),
+                "dev" => (int)await new DevCommand().ExecuteAsync(args[1], args.Skip(2).ToArray(), CancellationToken.None),
                 "build" => (int)await new BuildCommand().ExecuteAsync(args[1], args.Skip(2).ToArray(), CancellationToken.None),
                 _ => UnknownCommand(args[0])
             };

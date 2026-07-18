@@ -55,7 +55,9 @@ public sealed class ReflectionStoryRegistryTests
             .Where(static registration => registration.Descriptor.Id.Value.StartsWith("buttons/", StringComparison.Ordinal))
             .ToArray();
 
-        Assert.Equal(["buttons/primary", "buttons/secondary"], registrations.Select(static registration => registration.Descriptor.Id.Value));
+        Assert.Equal(
+            ["buttons/primary", "buttons/primarymanaged", "buttons/secondary"],
+            registrations.Select(static registration => registration.Descriptor.Id.Value));
 
         var primary = registrations.Single(static registration => registration.Descriptor.Id.Value == "buttons/primary");
         Assert.Equal("Primary", primary.Descriptor.Title);

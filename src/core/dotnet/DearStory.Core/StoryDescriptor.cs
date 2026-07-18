@@ -48,6 +48,12 @@ public sealed record StoryDescriptor
     public IReadOnlyList<string> Capabilities { get; init; } = [];
 
     /// <summary>
+    /// Gets the visual regression metadata for the story.
+    /// </summary>
+    /// <value>The visual regression metadata. The default is <see cref="StoryVisualDescriptor.Default" />.</value>
+    public StoryVisualDescriptor Visual { get; init; } = StoryVisualDescriptor.Default;
+
+    /// <summary>
     /// Creates a minimal story descriptor from a raw ID and title.
     /// </summary>
     /// <param name="id">A raw story identifier.</param>

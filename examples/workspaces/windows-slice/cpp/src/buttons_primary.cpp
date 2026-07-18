@@ -61,6 +61,7 @@ namespace dearstory::examples::windows_slice
         registry.add(sdk::story_registration::create(
             "Buttons/Primary",
             buttons_primary,
-            build_buttons_primary_arguments()));
+            build_buttons_primary_arguments(),
+            sdk::visual_story_options{ .include_in_canonical_corpus = true }));
     }
 }

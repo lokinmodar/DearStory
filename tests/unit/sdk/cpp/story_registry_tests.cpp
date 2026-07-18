@@ -60,3 +60,15 @@ TEST_CASE("sdk_story_registry produces a canonical descriptor without wrapping I
     REQUIRE(registrations.size() == 1U);
     REQUIRE(registrations.front().arguments().default_arguments().at("label") == "Save");
 }
+
+TEST_CASE("sdk_story_registry keeps explicit canonical visual enrollment")
+{
+    auto registration = dearstory::sdk::story_registration::create(
+        "buttons/primary",
+        +[](dearstory::sdk::story_context&) {},
+        dearstory::sdk::argument_metadata::empty(),
+        dearstory::sdk::visual_story_options{ .include_in_canonical_corpus = true });
+
+    REQUIRE(registration.descriptor().visual.supports_capture);
+    REQUIRE(registration.descriptor().visual.include_in_canonical_corpus);
+}

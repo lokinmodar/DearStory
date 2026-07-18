@@ -1,5 +1,7 @@
 using System.Runtime.Versioning;
 using System.Text.Json.Nodes;
+using DearStory.Capture;
+using DearStory.Catalog.Capture;
 using DearStory.Catalog.Controls;
 using DearStory.Catalog.Diagnostics;
 using DearStory.Catalog.Preview;
@@ -31,7 +33,14 @@ public sealed class CatalogSessionPresenter
         Diagnostics = Array.Empty<PatchFieldDiagnostic>();
         Tree = CatalogTreeBuilder.Build(Array.Empty<StoryDescriptor>());
         DiagnosticsPanel = new HostDiagnosticsPanel();
+        CaptureWorkflow = new CaptureWorkflowState();
     }
+
+    /// <summary>
+    /// Gets the capture workflow state for the active catalog session.
+    /// </summary>
+    /// <value>The capture workflow state for the active catalog session.</value>
+    public CaptureWorkflowState CaptureWorkflow { get; }
 
     /// <summary>
     /// Gets the merged story catalog.
@@ -132,6 +141,24 @@ public sealed class CatalogSessionPresenter
     public void RecordHostResult(HostHealthSnapshot result)
     {
         DiagnosticsPanel.Record(result);
+    }
+
+    /// <summary>
+    /// Records one pending visual capture request initiated from the catalog.
+    /// </summary>
+    /// <param name="command">The capture request to track.</param>
+    public void RequestCapture(CatalogCaptureCommand command)
+    {
+        CaptureWorkflow.Begin(command);
+    }
+
+    /// <summary>
+    /// Records one completed visual capture result initiated from the catalog.
+    /// </summary>
+    /// <param name="result">The completed capture result to track.</param>
+    public void CompleteCapture(VisualCaptureResult result)
+    {
+        CaptureWorkflow.Complete(result);
     }
 
     /// <summary>

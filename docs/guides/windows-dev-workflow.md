@@ -1,9 +1,9 @@
 # Windows development workflow
 
-This guide captures the current `dearstory dev` baseline for the Windows-first
+This guide captures the current `dearstory dev` workflow for the Windows-first
 slice.
 
-## What the dev loop owns today
+## What the interactive dev loop owns
 
 - workspace loading from `dearstory.toml`;
 - runner-owned catalog initialization;
@@ -11,6 +11,21 @@ slice.
 - selective restart planning from changed paths;
 - serializable story selection and argument preservation primitives;
 - a watcher abstraction that can publish changed paths into the restart loop.
+
+## One-shot visual capture
+
+`dearstory dev` also supports one-shot capture without entering the long-running
+interactive loop:
+
+```powershell
+dotnet run --project .\src\runner\dotnet\DearStory.Runner\DearStory.Runner.csproj -- `
+  dev .\examples\workspaces\windows-slice `
+  --capture-story buttons/primary `
+  --visual-backend warp
+```
+
+The command prints the resulting `capture-results.json` path and uses the same
+shared capture core as `dearstory build`.
 
 ## Current host-selection rules
 
@@ -29,12 +44,13 @@ The runner persists:
 This state is designed to survive compatible host restarts without coupling the
 runner to any host-specific runtime object graph.
 
-## Baseline limitations
+## Current limitations
 
-This slice does not yet provide:
+- catalog-triggered capture state exists, but the current slice does not yet
+  expose a full end-user button/menu workflow for issuing captures through the
+  interactive UI;
+- full filesystem-backed watch registration from `dearstory dev` remains
+  limited;
+- host-specific rebuild execution is still intentionally thin.
 
-- full filesystem-backed watch registration from `dearstory dev`;
-- real build-command execution per host;
-- UI-driven replay of restored state after a live host restart.
-
-Those layers build on the abstractions introduced here.
+Those layers build on the abstractions already introduced here.

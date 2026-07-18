@@ -1,5 +1,9 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/capture/" />
+  <Folder Name="/src/capture/dotnet/">
+    <Project Path="src/capture/dotnet/DearStory.Capture/DearStory.Capture.csproj" />
+  </Folder>
   <Folder Name="/src/catalog/" />
   <Folder Name="/src/catalog/dotnet/">
     <Project Path="src/catalog/dotnet/DearStory.Catalog/DearStory.Catalog.csproj" />
@@ -61,6 +65,10 @@
     <Project Path="tests/integration/windows/DearStory.WindowsSlice.Tests/DearStory.WindowsSlice.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/" />
+  <Folder Name="/tests/unit/capture/" />
+  <Folder Name="/tests/unit/capture/dotnet/">
+    <Project Path="tests/unit/capture/dotnet/DearStory.Capture.Tests/DearStory.Capture.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/unit/catalog/" />
   <Folder Name="/tests/unit/catalog/dotnet/">
     <Project Path="tests/unit/catalog/dotnet/DearStory.Catalog.Tests/DearStory.Catalog.Tests.csproj" />

@@ -9,21 +9,29 @@
 
 namespace dearstory::sdk {
 
+/// Stores the visual metadata options supplied during C++ story registration.
+struct visual_story_options final {
+    /// Stores whether the story opts into the canonical visual corpus.
+    bool include_in_canonical_corpus{ false };
+};
+
 /// Stores one registered DearStory C++ story callback and its metadata.
 class story_registration final {
 public:
     /// Represents one DearStory C++ story callback.
     using story_callback = void (*)(story_context&);
 
-    /// Creates one story registration from raw ID text, callback, and argument metadata.
+    /// Creates one story registration from raw ID text, callback, argument metadata, and visual options.
     /// \param raw_id The raw story identifier text.
     /// \param render The story callback function.
     /// \param arguments The compile-time supplied argument metadata.
+    /// \param visual The visual metadata options.
     /// \returns A canonical story registration.
     [[nodiscard]] static story_registration create(
         std::string_view raw_id,
         story_callback render,
-        argument_metadata arguments);
+        argument_metadata arguments,
+        visual_story_options visual = {});
 
     /// Gets the canonical story descriptor.
     /// \returns The canonical story descriptor.
