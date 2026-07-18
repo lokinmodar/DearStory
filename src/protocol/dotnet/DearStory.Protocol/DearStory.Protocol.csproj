@@ -2,5 +2,8 @@
   <PropertyGroup>
     <AssemblyName>DearStory.Protocol</AssemblyName>
     <RootNamespace>DearStory.Protocol</RootNamespace>
+    <PackageId>DearStory.Protocol</PackageId>
+    <Description>Generated and hand-authored DearStory control contract types for .NET consumers.</Description>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 </Project>

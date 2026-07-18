@@ -2,6 +2,9 @@
   <PropertyGroup>
     <AssemblyName>DearStory.Sdk</AssemblyName>
     <RootNamespace>DearStory.Sdk</RootNamespace>
+    <PackageId>DearStory.Sdk</PackageId>
+    <Description>Thin DearStory authoring SDK for ImGui.NET stories.</Description>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
