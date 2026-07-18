@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Text.Json.Nodes;
+using DearStory.Core;
 using DearStory.Sdk;
 using DearStory.Sdk.Generator;
 using Microsoft.CodeAnalysis;
@@ -81,6 +83,7 @@ public sealed class StoryRegistryGeneratorTests
         Assert.Contains("Name = \"count\"", result.Output, StringComparison.Ordinal);
         Assert.Contains("JsonValue.Create(3)", result.Output, StringComparison.Ordinal);
         Assert.Contains("Name = \"ratio\"", result.Output, StringComparison.Ordinal);
+        Assert.Contains("JsonValue.Create(1.5)", result.Output, StringComparison.Ordinal);
         Assert.Contains("Name = \"tone\"", result.Output, StringComparison.Ordinal);
         Assert.Contains("\\\"enum\\\":[\\\"Primary\\\",\\\"Secondary\\\"]", result.Output, StringComparison.Ordinal);
         Assert.Contains(@"""Buttons""", result.Output, StringComparison.Ordinal);
@@ -161,6 +164,8 @@ public sealed class StoryRegistryGeneratorTests
             {
                 MetadataReference.CreateFromFile(typeof(StoryAttribute).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(StoryContext).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(StoryDescriptor).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(JsonNode).Assembly.Location),
             };
 
             var references = loadedReferences
@@ -178,12 +183,16 @@ public sealed class StoryRegistryGeneratorTests
             Assert.Empty(compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
 
             IIncrementalGenerator generator = new StoryRegistryGenerator();
-            GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-            driver = driver.RunGenerators(compilation);
+            GeneratorDriver driver = CSharpGeneratorDriver.Create(
+                [generator.AsSourceGenerator()],
+                parseOptions: (CSharpParseOptions)syntaxTree.Options);
+            driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var generatorDiagnostics);
             var result = driver.GetRunResult();
 
             if (!allowGeneratorErrors) {
+                Assert.Empty(generatorDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
                 Assert.Empty(result.Diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+                Assert.Empty(outputCompilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
             }
             return new GeneratorExecutionResult(
                 string.Join(

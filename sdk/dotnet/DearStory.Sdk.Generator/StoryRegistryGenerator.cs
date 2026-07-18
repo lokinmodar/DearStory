@@ -85,7 +85,7 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
             ToDisplayTitle(rawId),
             ToHierarchy(rawId),
             XmlDocumentationReader.ReadSummary(methodSymbol.GetDocumentationCommentXml(cancellationToken: cancellationToken) ?? string.Empty),
-            methodSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            methodSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + methodSymbol.Name,
             includeInCanonicalCorpus,
             storyArguments);
     }
@@ -166,7 +166,9 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
             LiteralExpressionSyntax literal when literal.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.FalseLiteralExpression) =>
                 "false",
             LiteralExpressionSyntax literal when literal.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.NumericLiteralExpression) =>
-                literal.Token.Value?.ToString(),
+                literal.Token.Value is IFormattable formattable
+                    ? formattable.ToString(null, CultureInfo.InvariantCulture)
+                    : literal.Token.Value?.ToString(),
             _ => null,
         };
     }
@@ -221,7 +223,7 @@ public sealed class StoryRegistryGenerator : IIncrementalGenerator
         builder.AppendLine();
         builder.AppendLine("namespace DearStory.Sdk;");
         builder.AppendLine();
-        builder.AppendLine("public sealed partial class GeneratedStoryRegistry");
+        builder.AppendLine("public static class GeneratedStoryRegistryFactory");
         builder.AppendLine("{");
         builder.AppendLine("    /// <summary>Creates the source-generated DearStory story registry.</summary>");
         builder.AppendLine("    public static GeneratedStoryRegistry Create()");

@@ -43,7 +43,8 @@ $managedTestProjects = @(
     '.\tests\e2e\windows\DearStory.WindowsSlice.E2ETests\DearStory.WindowsSlice.E2ETests.csproj',
     '.\tests\unit\runner\dotnet\DearStory.Runner.Tests\DearStory.Runner.Tests.csproj',
     '.\tests\unit\sdk\dotnet\DearStory.Sdk.Tests\DearStory.Sdk.Tests.csproj',
-    '.\tests\unit\sdk\dotnet\DearStory.Sdk.Generator.Tests\DearStory.Sdk.Generator.Tests.csproj'
+    '.\tests\unit\sdk\dotnet\DearStory.Sdk.Generator.Tests\DearStory.Sdk.Generator.Tests.csproj',
+    '.\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj'
 )
 
 $managedCoveragePackages = @(
@@ -83,6 +84,7 @@ function Test-DearStoryCoveragePackage {
 $ctestArguments = @('--preset', 'windows-msvc-debug', '--output-on-failure')
 $dotnetTestArguments = @('--no-build', '-m:1')
 $previousTestConfiguration = $env:DEARSTORY_TEST_CONFIGURATION
+$previousLocalFeed = $env:DearStoryLocalFeed
 
 if ($Configuration -eq 'Release') {
     $ctestArguments += @('-C', 'Release')
@@ -92,9 +94,19 @@ if ($Configuration -eq 'Release') {
 try {
     $env:DEARSTORY_TEST_CONFIGURATION = $Configuration
 
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\pack.ps1', '-Configuration', $Configuration)
+    $env:DearStoryLocalFeed = [System.IO.Path]::GetFullPath((Join-Path $PWD 'artifacts\packages\local-feed'))
+
     Invoke-DearStoryCommand -Executable 'ctest' -Arguments $ctestArguments
     foreach ($managedTestProject in $managedTestProjects) {
-        Invoke-DearStoryCommand -Executable 'dotnet' -Arguments (@('test', $managedTestProject) + $dotnetTestArguments)
+        $testArguments = if ($managedTestProject -like '*DearStory.Consumer.Smoke.csproj') {
+            @('test', $managedTestProject, '-m:1')
+        }
+        else {
+            @('test', $managedTestProject) + $dotnetTestArguments
+        }
+
+        Invoke-DearStoryCommand -Executable 'dotnet' -Arguments $testArguments
     }
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\Doctor.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\BuildScripts.Tests.ps1')
@@ -202,5 +214,12 @@ finally {
     }
     else {
         $env:DEARSTORY_TEST_CONFIGURATION = $previousTestConfiguration
+    }
+
+    if ($null -eq $previousLocalFeed) {
+        Remove-Item Env:DearStoryLocalFeed -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DearStoryLocalFeed = $previousLocalFeed
     }
 }
