@@ -179,6 +179,8 @@ jobs:
             'DearStory.Sdk',
             'DearStory.Sdk.Generator'
           )
+          $publishedPackageRoot = Join-Path $env:RUNNER_TEMP "dearstory-published-nuget\$version"
+          New-Item -ItemType Directory -Force -Path $publishedPackageRoot | Out-Null
 
           function Get-PublishedPackages {
             $published = foreach ($packageId in $packageIds) {
@@ -201,6 +203,26 @@ jobs:
             }
 
             return @($published)
+          }
+
+          function Assert-PublishedPackageMatchesReleaseUnit {
+            param(
+              [Parameter(Mandatory)]
+              [string] $PackageId
+            )
+
+            $normalizedPackageId = $PackageId.ToLowerInvariant()
+            $normalizedVersion = $version.ToLowerInvariant()
+            $packageUri = '{0}/{1}/{2}/{1}.{2}.nupkg' -f $packageBaseUrl, $normalizedPackageId, $normalizedVersion
+            $packagePath = Join-Path $releaseRoot "dotnet\$PackageId.$version.nupkg"
+            $publishedPackagePath = Join-Path $publishedPackageRoot "$normalizedPackageId.$normalizedVersion.nupkg"
+
+            Invoke-WebRequest -Uri $packageUri -OutFile $publishedPackagePath
+            $releasePackageHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash
+            $publishedPackageHash = (Get-FileHash -LiteralPath $publishedPackagePath -Algorithm SHA256).Hash
+            if ($publishedPackageHash -ne $releasePackageHash) {
+              throw "Published NuGet package '$PackageId' version '$version' does not match the coordinated release unit."
+            }
           }
 
           $releaseApiUri = "https://api.github.com/repos/$env:GH_REPO/releases/tags/$tag"
@@ -246,6 +268,10 @@ jobs:
           }
 
           $publishedPackages = @(Get-PublishedPackages)
+          foreach ($packageId in $publishedPackages) {
+            Assert-PublishedPackageMatchesReleaseUnit -PackageId $packageId
+          }
+
           $missingPackages = @($packageIds | Where-Object { $publishedPackages -notcontains $_ })
           foreach ($packageId in $missingPackages) {
             $packagePath = Join-Path $releaseRoot "dotnet\$packageId.$version.nupkg"
@@ -270,6 +296,10 @@ jobs:
           $unpublishedPackages = @($packageIds | Where-Object { $publishedPackages -notcontains $_ })
           if ($publishedPackages.Count -ne $packageIds.Count) {
             throw "Coordinated NuGet publication is incomplete for version ${version}: $($unpublishedPackages -join ', ')."
+          }
+
+          foreach ($packageId in $packageIds) {
+            Assert-PublishedPackageMatchesReleaseUnit -PackageId $packageId
           }
 
           gh release upload $tag "$releaseRoot\cpp\DearStory-cpp-$version-windows-msvc-x64.zip" "$releaseRoot\SHA256SUMS" "$releaseRoot\release-manifest.json" --clobber --repo $env:GH_REPO

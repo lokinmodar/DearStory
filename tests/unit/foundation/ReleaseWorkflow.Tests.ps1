@@ -106,6 +106,36 @@ Describe 'Release workflow' {
         $workflow | Should Match '(?s)\$publishedPackages\s*=\s*@\(Get-PublishedPackages.*?if \(\$publishedPackages\.Count -ne \$packageIds\.Count\)\s*\{\s*throw.*?gh release upload'
     }
 
+    It 'verifies published NuGet package contents against the coordinated release unit' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $publishScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+        ).Groups['script'].Value
+
+        $publishScript | Should Match '\$packageUri\s*=\s*''\{0\}/\{1\}/\{2\}/\{1\}\.\{2\}\.nupkg''\s*-f\s*\$packageBaseUrl,\s*\$normalizedPackageId,\s*\$normalizedVersion'
+        $publishScript | Should Match 'Invoke-WebRequest -Uri \$packageUri -OutFile \$publishedPackagePath'
+        $publishScript | Should Match 'Get-FileHash -LiteralPath \$packagePath -Algorithm SHA256'
+        $publishScript | Should Match 'Get-FileHash -LiteralPath \$publishedPackagePath -Algorithm SHA256'
+        $publishScript | Should Match 'if \(\$publishedPackageHash -ne \$releasePackageHash\)\s*\{\s*throw'
+        $publishScript | Should Match '(?s)foreach \(\$packageId in \$publishedPackages\)\s*\{\s*Assert-PublishedPackageMatchesReleaseUnit -PackageId \$packageId\s*\}'
+        $publishScript | Should Match '(?s)foreach \(\$packageId in \$packageIds\)\s*\{\s*Assert-PublishedPackageMatchesReleaseUnit -PackageId \$packageId\s*\}'
+
+        $initialPublishedLookup = $publishScript.IndexOf('$publishedPackages = @(Get-PublishedPackages)')
+        $initialContentVerification = $publishScript.IndexOf('foreach ($packageId in $publishedPackages)')
+        $missingPackageResolution = $publishScript.IndexOf('$missingPackages =')
+        $coordinatedPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -ne $packageIds.Count)')
+        $finalContentVerification = $publishScript.IndexOf('foreach ($packageId in $packageIds)', $coordinatedPublicationGate)
+        $assetUpload = $publishScript.IndexOf('gh release upload')
+
+        $initialPublishedLookup | Should BeGreaterThan -1
+        $initialContentVerification | Should BeGreaterThan $initialPublishedLookup
+        $initialContentVerification | Should BeLessThan $missingPackageResolution
+        $coordinatedPublicationGate | Should BeGreaterThan $missingPackageResolution
+        $finalContentVerification | Should BeGreaterThan $coordinatedPublicationGate
+        $finalContentVerification | Should BeLessThan $assetUpload
+    }
+
     It 'contains syntactically valid PowerShell in release state steps' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $stepPatterns = @(
