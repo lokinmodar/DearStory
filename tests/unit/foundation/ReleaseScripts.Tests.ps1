@@ -303,6 +303,11 @@ exit /b 0
         throw "Expected same-commit SHA256SUMS files to be byte-for-byte deterministic, got '$firstChecksumsHash' and '$secondChecksumsHash'."
     }
 
+    $checksumEntries = Get-Content -LiteralPath (Join-Path $firstReleaseRoot 'SHA256SUMS')
+    if (@($checksumEntries | Select-String -SimpleMatch '*release-manifest.json').Count -ne 1) {
+        throw 'Expected SHA256SUMS to cover release-manifest.json exactly once.'
+    }
+
     $firstManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $firstReleaseRoot 'release-manifest.json')).Hash
     $secondManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $secondReleaseRoot 'release-manifest.json')).Hash
     if ($firstManifestHash -ne $secondManifestHash) {

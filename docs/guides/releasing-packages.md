@@ -85,7 +85,7 @@ publication: if NuGet already contains only a subset of the four packages, the
 workflow fails before pushing any additional package and leaves the GitHub
 Release in `draft` for manual resolution.
 
-## .NET package publishing
+## Local package preparation
 
 Build the Release configuration, then produce the package artifacts:
 
@@ -100,12 +100,11 @@ pwsh -NoProfile -File .\eng\pack.ps1 -Configuration Release
 `artifacts\packages\local-feed`. Treat `dotnet` as the publishing source and
 `local-feed` as the local-consumer validation source.
 
-After the verification gates pass, publish the `.nupkg` files from
-`artifacts\packages\dotnet` to NuGet under the release tag's version. Publish
-only the four public packages, and retain the generated artifacts associated
-with the tag so a release can be audited or reproduced.
+These local package files are inputs to the coordinated release unit. Do not
+publish them directly; `.github/workflows/release.yml` is the only publication
+path for NuGet and GitHub Release assets.
 
-## C++ install artifact publishing
+## Local C++ artifact preparation
 
 Create the C++ install tree from the configured Release build:
 
@@ -113,9 +112,10 @@ Create the C++ install tree from the configured Release build:
 cmake --install .\build\windows-msvc-debug --config Release --prefix .\artifacts\install\dearstory
 ```
 
-Archive the contents of `artifacts\install\dearstory` as the C++ package
-artifact and attach that archive to the tagged release. Consumers unpack the
-archive and pass its extracted root through `CMAKE_PREFIX_PATH`, for example:
+The release script archives this install tree into the coordinated release
+unit. Do not manually attach an archive to a GitHub Release. Consumers unpack
+the workflow-published archive and pass its extracted root through
+`CMAKE_PREFIX_PATH`, for example:
 
 ```powershell
 cmake -S .\consumer -B .\consumer-build -DCMAKE_PREFIX_PATH:PATH=C:\path\to\dearstory
@@ -152,9 +152,12 @@ $version = (& .\eng\read-version.ps1).Version
 $commit = (git rev-parse HEAD).Trim()
 pwsh -NoProfile -File .\eng\release.ps1 -ReleaseMode Local `
   -ExpectedVersion $version -SourceRef refs/heads/main `
-  -SourceCommit $commit -SkipBuild -SkipTest
+  -SourceCommit $commit -OutputRoot .\artifacts\local-release-check `
+  -SkipBuild -SkipTest
 ```
 
-The local command regenerates the same versioned release unit that the GitHub
-workflow uploads. Do not publish individual packages or a C++ archive outside
-that coordinated product unit.
+The local command creates the same versioned release unit that the GitHub
+workflow uploads. It refuses to overwrite an existing versioned output, so use
+a clean output location or a fresh `-OutputRoot` for each repeated validation.
+`.github/workflows/release.yml` is the authoritative, coordinated publication
+path; do not publish individual packages or a C++ archive outside that unit.

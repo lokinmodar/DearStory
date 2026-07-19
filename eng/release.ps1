@@ -180,6 +180,10 @@ $checksumPath = Join-Path $stagingReleaseRoot 'SHA256SUMS'
 $manifestPath = Join-Path $stagingReleaseRoot 'release-manifest.json'
 $releasePromoted = $false
 
+if (-not $WhatIfPreference -and (Test-Path -LiteralPath $releaseRoot)) {
+    throw "Release output directory '$releaseRoot' already exists. Refusing to replace an existing release unit."
+}
+
 if (-not $SkipBuild) {
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', $buildScript, '-Configuration', $Configuration)
 }
@@ -189,10 +193,6 @@ if (-not $SkipTest) {
 }
 
 Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', $packScript, '-Configuration', $Configuration)
-
-if (-not $WhatIfPreference -and (Test-Path -LiteralPath $releaseRoot)) {
-    throw "Release output directory '$releaseRoot' already exists. Refusing to replace an existing release unit."
-}
 
 try {
 if ($script:DearStoryCmdlet.ShouldProcess($stagingReleaseRoot, 'Prepare release staging tree')) {
@@ -212,24 +212,6 @@ if ($script:DearStoryCmdlet.ShouldProcess($cppArchivePath, 'Create public C++ re
     New-DearStoryDeterministicArchive -SourceRoot $stagingInstallPrefix -DestinationPath $cppArchivePath
 }
 
-if ($script:DearStoryCmdlet.ShouldProcess($checksumPath, 'Write SHA256SUMS')) {
-    $checksumRelativePaths = [System.Collections.Generic.List[string]]::new()
-    foreach ($file in Get-ChildItem -LiteralPath $stagingReleaseRoot -File -Recurse) {
-        $checksumRelativePaths.Add([System.IO.Path]::GetRelativePath($stagingReleaseRoot, $file.FullName).Replace('\', '/'))
-    }
-    $checksumRelativePaths.Sort([System.StringComparer]::Ordinal)
-
-    $checksumLines = @(
-        foreach ($relativePath in $checksumRelativePaths) {
-            $artifactPath = Join-Path $stagingReleaseRoot $relativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
-            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $artifactPath).Hash.ToLowerInvariant()
-            '{0} *{1}' -f $hash, $relativePath
-        }
-    )
-
-    [System.IO.File]::WriteAllLines($checksumPath, $checksumLines, [System.Text.UTF8Encoding]::new($false))
-}
-
 Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @(
     '-NoProfile',
     '-File',
@@ -247,6 +229,24 @@ Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @(
     '-OutputPath',
     $manifestPath
 )
+
+if ($script:DearStoryCmdlet.ShouldProcess($checksumPath, 'Write SHA256SUMS')) {
+    $checksumRelativePaths = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in Get-ChildItem -LiteralPath $stagingReleaseRoot -File -Recurse) {
+        $checksumRelativePaths.Add([System.IO.Path]::GetRelativePath($stagingReleaseRoot, $file.FullName).Replace('\', '/'))
+    }
+    $checksumRelativePaths.Sort([System.StringComparer]::Ordinal)
+
+    $checksumLines = @(
+        foreach ($relativePath in $checksumRelativePaths) {
+            $artifactPath = Join-Path $stagingReleaseRoot $relativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $artifactPath).Hash.ToLowerInvariant()
+            '{0} *{1}' -f $hash, $relativePath
+        }
+    )
+
+    [System.IO.File]::WriteAllLines($checksumPath, $checksumLines, [System.Text.UTF8Encoding]::new($false))
+}
 
 if (-not $WhatIfPreference -and (Test-Path -LiteralPath $releaseRoot)) {
     throw "Release output directory '$releaseRoot' already exists. Refusing to replace an existing release unit."
