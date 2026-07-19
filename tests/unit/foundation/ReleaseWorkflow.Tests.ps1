@@ -9,6 +9,11 @@ Describe 'Release workflow' {
         $workflow | Should Match 'version:'
     }
 
+    It 'uses the canonical tag name as the release concurrency key for every trigger' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $workflow | Should Match 'group:\s*dearstory-release-\$\{\{\s*github\.event_name\s*==\s*''workflow_dispatch''\s*&&\s*format\(''v\{0\}'',\s*inputs\.version\)\s*\|\|\s*github\.ref_name\s*\}\}'
+    }
+
     It 'passes manual inputs to PowerShell through the environment' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'MANUAL_REF:\s*\$\{\{\s*inputs\.ref\s*\}\}'
