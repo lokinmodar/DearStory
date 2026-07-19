@@ -102,12 +102,16 @@ try {
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\CoverageGate.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\VisualBaselineWorkflow.Tests.ps1')
 
+    $localFeedPath = [System.IO.Path]::GetFullPath((Join-Path $PWD 'artifacts\packages\local-feed'))
+    $installPrefix = [System.IO.Path]::GetFullPath((Join-Path $PWD 'artifacts\install\dearstory'))
+    $repositoryRoot = [System.IO.Path]::GetFullPath($PWD.Path)
+
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\pack.ps1', '-Configuration', $Configuration)
-    $env:DearStoryLocalFeed = (Resolve-Path '.\artifacts\packages\local-feed').Path
+    $env:DearStoryLocalFeed = $localFeedPath
     Invoke-DearStoryCommand -Executable 'dotnet' -Arguments @('test', '.\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj', '-c', $Configuration)
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', '.\build\windows-msvc-debug', '--config', $Configuration, '--prefix', '.\artifacts\install\dearstory')
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'rm', '-rf', '.\build\consumers\cpp')
-    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-S', '.\tests\consumers\cpp', '-B', '.\build\consumers\cpp', ("-DCMAKE_PREFIX_PATH:PATH={0}" -f (Resolve-Path '.\artifacts\install\dearstory').Path), ("-DCMAKE_TOOLCHAIN_FILE:FILEPATH={0}" -f (Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake')), ("-DVCPKG_MANIFEST_DIR:PATH={0}" -f (Resolve-Path '.').Path))
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-S', '.\tests\consumers\cpp', '-B', '.\build\consumers\cpp', ("-DCMAKE_PREFIX_PATH:PATH={0}" -f $installPrefix), ("-DCMAKE_TOOLCHAIN_FILE:FILEPATH={0}" -f (Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake')), ("-DVCPKG_MANIFEST_DIR:PATH={0}" -f $repositoryRoot))
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--build', '.\build\consumers\cpp', '--config', $Configuration)
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'chdir', '.\build\consumers\cpp', 'ctest', '-C', $Configuration, '--output-on-failure')
 
