@@ -14,6 +14,7 @@ target_link_libraries(
     PRIVATE
         Catch2::Catch2WithMain
         DearStory::ProtocolCpp
+        DearStory::TransportsCpp
         nlohmann_json::nlohmann_json)
 
 set_target_properties(

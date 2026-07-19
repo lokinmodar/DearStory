@@ -7,5 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\protocol\dotnet\DearStory.Protocol\DearStory.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\transports\dotnet\DearStory.Transport.Windows\DearStory.Transport.Windows.csproj" />
   </ItemGroup>
 </Project>

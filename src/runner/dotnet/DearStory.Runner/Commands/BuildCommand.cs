@@ -43,7 +43,7 @@ public sealed class BuildCommand
         Directory.CreateDirectory(outputDirectory);
         var storyIds = ResolveStoryIds(configuration, options);
 
-        var frameSource = new RunnerHostCaptureAdapter(configuration);
+        var frameSource = new RunnerHostCaptureAdapter(configuration, options.Configuration);
         var captureService = new VisualCaptureService();
         var results = await captureService.ExecuteAsync(
             new VisualCaptureRequest(
@@ -81,7 +81,7 @@ public sealed class BuildCommand
 
     private static BuildCommandOptions ParseOptions(IReadOnlyList<string> arguments)
     {
-        var configuration = "Debug";
+        var configuration = BuildConfigurationResolver.Resolve(null, AppContext.BaseDirectory);
         var visualBackend = CaptureBackendKind.Warp;
         var canonicalOnly = false;
         var approve = false;

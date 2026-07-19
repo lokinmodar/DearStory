@@ -1,21 +1,21 @@
 #define NOMINMAX
 #include <Windows.h>
 
-#include <dearstory/protocol/windows/named_pipe_client.hpp>
+#include <dearstory/transports/windows/named_pipe_client.hpp>
 
 #include <string>
 
-namespace dearstory::protocol::windows {
+namespace dearstory::transports::windows {
 namespace
 {
-    [[nodiscard]] protocol_error make_pipe_error(
+    [[nodiscard]] protocol::protocol_error make_pipe_error(
         std::string code,
         std::string message,
         std::string recovery,
         DWORD win32_error,
         std::string_view operation)
     {
-        protocol_error error{
+        protocol::protocol_error error{
             .code = std::move(code),
             .message = std::move(message),
             .recovery = std::move(recovery)
@@ -97,4 +97,4 @@ pipe_connection named_pipe_client::connect(std::wstring_view pipe_name, std::sto
         "connect");
 }
 
-} // namespace dearstory::protocol::windows
+} // namespace dearstory::transports::windows

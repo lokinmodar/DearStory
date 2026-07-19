@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a defect in DearStory library surfaces, tooling, docs, or repository workflows.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem.
+
+        Use this form for reproducible defects in:
+        - public C++ or .NET package consumption
+        - Windows-first runner/host/catalog flows
+        - docs, CI, or repository tooling
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Choose the primary area impacted by the bug.
+      options:
+        - C++ package consumption
+        - .NET package consumption
+        - SDK / generator behavior
+        - Windows runner / host / catalog
+        - Docs / release guidance
+        - CI / build / test scripts
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the problem clearly and concretely.
+      placeholder: What is broken?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reproducible sequence you can.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What happened in practice?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, toolchain, package version, and anything else relevant.
+      placeholder: |
+        - OS:
+        - DearStory version:
+        - .NET SDK / compiler:
+        - CMake / MSVC / vcpkg:
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, stack traces, or screenshots
+      description: Paste any relevant evidence here.
+      render: shell
+    validations:
+      required: false
+

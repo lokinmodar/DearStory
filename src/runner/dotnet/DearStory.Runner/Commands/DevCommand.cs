@@ -45,7 +45,7 @@ public sealed class DevCommand
 
         if (options.CaptureStoryId is not null)
         {
-            var frameSource = new RunnerHostCaptureAdapter(configuration);
+            var frameSource = new RunnerHostCaptureAdapter(configuration, options.Configuration);
             var captureService = new VisualCaptureService();
             var results = await captureService.ExecuteAsync(
                 new VisualCaptureRequest(
@@ -117,6 +117,7 @@ public sealed class DevCommand
     private static DevCommandOptions ParseOptions(IReadOnlyList<string> arguments)
     {
         string? captureStoryId = null;
+        var configuration = BuildConfigurationResolver.Resolve(null, AppContext.BaseDirectory);
         var visualBackend = CaptureBackendKind.Warp;
         var approve = false;
 
@@ -130,6 +131,17 @@ public sealed class DevCommand
                 }
 
                 captureStoryId = arguments[++index];
+                continue;
+            }
+
+            if (string.Equals(arguments[index], "--configuration", StringComparison.Ordinal))
+            {
+                if (index + 1 >= arguments.Count)
+                {
+                    throw new InvalidOperationException("The --configuration option requires a value.");
+                }
+
+                configuration = arguments[++index];
                 continue;
             }
 
@@ -150,7 +162,7 @@ public sealed class DevCommand
             }
         }
 
-        return new DevCommandOptions(captureStoryId, visualBackend, approve);
+        return new DevCommandOptions(captureStoryId, configuration, visualBackend, approve);
     }
 
     private static CaptureBackendKind ParseVisualBackend(string value)
@@ -163,5 +175,5 @@ public sealed class DevCommand
         };
     }
 
-    private sealed record DevCommandOptions(string? CaptureStoryId, CaptureBackendKind VisualBackend, bool Approve);
+    private sealed record DevCommandOptions(string? CaptureStoryId, string Configuration, CaptureBackendKind VisualBackend, bool Approve);
 }

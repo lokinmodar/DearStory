@@ -166,13 +166,13 @@
       "dearstory.core": {
         "type": "Project",
         "dependencies": {
-          "DearStory.Protocol": "[1.0.0, )"
+          "DearStory.Protocol": "[0.1.0, )"
         }
       },
       "dearstory.docs": {
         "type": "Project",
         "dependencies": {
-          "DearStory.Core": "[1.0.0, )",
+          "DearStory.Core": "[0.1.0, )",
           "Markdig": "[1.3.2, )"
         }
       },

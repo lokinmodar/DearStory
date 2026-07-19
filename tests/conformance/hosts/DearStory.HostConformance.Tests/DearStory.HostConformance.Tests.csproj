@@ -28,4 +28,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildProjectDirectory)\..\..\..\shared\CurrentBuildConfiguration.cs">
+      <Link>CurrentBuildConfiguration.cs</Link>
+    </Compile>
+  </ItemGroup>
 </Project>

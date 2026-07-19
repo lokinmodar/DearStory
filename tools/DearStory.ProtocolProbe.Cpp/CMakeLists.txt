@@ -6,6 +6,7 @@ target_link_libraries(
     dearstory-protocol-probe-cpp
     PRIVATE
         DearStory::ProtocolCpp
+        DearStory::TransportsCpp
         Rpcrt4)
 
 set_target_properties(

@@ -1,13 +1,13 @@
 #define NOMINMAX
 #include <Windows.h>
 
-#include <dearstory/protocol/windows/named_pipe_server.hpp>
+#include <dearstory/transports/windows/named_pipe_server.hpp>
 
 #include <array>
 #include <span>
 #include <utility>
 
-namespace dearstory::protocol::windows {
+namespace dearstory::transports::windows {
 namespace
 {
     struct scoped_event final {
@@ -27,14 +27,14 @@ namespace
         HANDLE handle{ nullptr };
     };
 
-    [[nodiscard]] protocol_error make_pipe_error(
+    [[nodiscard]] protocol::protocol_error make_pipe_error(
         std::string code,
         std::string message,
         std::string recovery,
         DWORD win32_error,
         std::string_view operation)
     {
-        protocol_error error{
+        protocol::protocol_error error{
             .code = std::move(code),
             .message = std::move(message),
             .recovery = std::move(recovery)
@@ -187,13 +187,13 @@ namespace
     }
 } // namespace
 
-pipe_exception::pipe_exception(protocol_error error)
+pipe_exception::pipe_exception(protocol::protocol_error error)
     : std::runtime_error(error.message)
     , error_(std::move(error))
 {
 }
 
-protocol_error const& pipe_exception::error() const noexcept
+protocol::protocol_error const& pipe_exception::error() const noexcept
 {
     return error_;
 }
@@ -268,7 +268,7 @@ std::optional<std::string> pipe_connection::read_payload(std::stop_token stop_to
         {
             if (awaiting_more_bytes_)
             {
-                throw pipe_exception(protocol_error{
+                throw pipe_exception(protocol::protocol_error{
                     .code = "protocol.invalid_envelope",
                     .message = "The control frame ended before the payload completed.",
                     .recovery = "Reconnect and resend a complete control frame."
@@ -305,7 +305,7 @@ std::optional<std::string> pipe_connection::read_payload(std::stop_token stop_to
 void pipe_connection::write_payload(std::string_view payload)
 {
     auto const handle = require_handle(handle_, "write");
-    auto const framed = frame(payload);
+    auto const framed = protocol::frame(payload);
     std::size_t offset = 0;
     while (offset < framed.size())
     {
@@ -339,8 +339,8 @@ named_pipe_server::named_pipe_server(std::wstring pipe_name)
         PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
         PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
         1,
-        max_control_frame_bytes + sizeof(std::uint32_t),
-        max_control_frame_bytes + sizeof(std::uint32_t),
+        protocol::max_control_frame_bytes + sizeof(std::uint32_t),
+        protocol::max_control_frame_bytes + sizeof(std::uint32_t),
         0,
         nullptr);
     if (handle == INVALID_HANDLE_VALUE)
@@ -429,4 +429,4 @@ void named_pipe_server::close() noexcept
     close_handle(handle_);
 }
 
-} // namespace dearstory::protocol::windows
+} // namespace dearstory::transports::windows

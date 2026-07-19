@@ -3,7 +3,12 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $buildScript = Join-Path $repositoryRoot 'eng\build.ps1'
 $testScript = Join-Path $repositoryRoot 'eng\test.ps1'
+$boundaryTestScript = Join-Path $repositoryRoot 'tests\unit\foundation\PublicPackageBoundaries.Tests.ps1'
 $testScriptContent = Get-Content -Raw $testScript
+$boundaryTestScriptContent = Get-Content -Raw $boundaryTestScript
+$consumerProject = Join-Path $repositoryRoot 'tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj'
+$consumerProjectContent = Get-Content -Raw $consumerProject
+$consumerNuGetConfig = Join-Path $repositoryRoot 'tests\consumers\dotnet\DearStory.Consumer.Smoke\NuGet.config'
 
 if ($testScriptContent -notmatch 'tests\\unit\\core\\dotnet\\DearStory\.Core\.Tests') {
     throw 'eng/test.ps1 must run the managed core tests.'
@@ -11,6 +16,46 @@ if ($testScriptContent -notmatch 'tests\\unit\\core\\dotnet\\DearStory\.Core\.Te
 
 if ($testScriptContent -notmatch 'tests\\unit\\sdk\\dotnet\\DearStory\.Sdk\.Tests') {
     throw 'eng/test.ps1 must run the managed SDK tests.'
+}
+
+if ($boundaryTestScriptContent -notmatch "ValidateSet\('Debug', 'Release'\)") {
+    throw 'PublicPackageBoundaries.Tests.ps1 must accept Debug and Release configurations.'
+}
+
+if ($boundaryTestScriptContent -notmatch 'cmake --install \$buildDirectory --config \$Configuration --prefix \$installPrefix') {
+    throw 'PublicPackageBoundaries.Tests.ps1 must install the selected configuration.'
+}
+
+if ($testScriptContent -notmatch 'PublicPackageBoundaries\.Tests\.ps1.+''-Configuration'', \$Configuration') {
+    throw 'eng/test.ps1 must pass its selected configuration to PublicPackageBoundaries.Tests.ps1.'
+}
+
+if ($testScriptContent -notmatch 'CMAKE_CONFIGURATION_TYPES:STRING=\{0\}" -f \$Configuration') {
+    throw 'eng/test.ps1 must configure the native consumer with the selected configuration only.'
+}
+
+$installClearIndex = $testScriptContent.IndexOf('Remove-Item -LiteralPath $installPrefix -Recurse -Force', [StringComparison]::Ordinal)
+$installCommandIndex = $testScriptContent.IndexOf("Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install'", [StringComparison]::Ordinal)
+if ($installClearIndex -lt 0 -or $installClearIndex -gt $installCommandIndex) {
+    throw 'eng/test.ps1 must clear the C++ install prefix before cmake --install.'
+}
+
+if ($consumerProjectContent -match 'PackageReference Include="DearStory\.(Protocol|Core)"') {
+    throw 'The SDK package smoke consumer must rely on transitive Protocol and Core dependencies.'
+}
+
+if ($consumerProjectContent -notmatch 'PackageReference Include="DearStory\.Sdk" Version="\$\(DearStoryPackageVersion\)"') {
+    throw 'The package smoke consumer must receive an exact DearStory package version from the test flow.'
+}
+
+if (-not (Test-Path -LiteralPath $consumerNuGetConfig)) {
+    throw 'The package smoke consumer must define package-source mapping in NuGet.config.'
+}
+
+$consumerNuGetConfigContent = Get-Content -Raw $consumerNuGetConfig
+if ($consumerNuGetConfigContent -notmatch '<package pattern="DearStory\.\*"\s*/>' -or
+    $consumerNuGetConfigContent -notmatch '<packageSource key="DearStoryLocalFeed">') {
+    throw 'The package smoke consumer must map DearStory.* packages exclusively to the local feed.'
 }
 
 $buildOutput = & pwsh -NoProfile -File $buildScript -Configuration Debug -WhatIf 2>&1
@@ -78,7 +123,9 @@ $testExpectedCommands = @(
     'ctest --preset windows-msvc-debug --output-on-failure',
     'pwsh -NoProfile -File .\tests\unit\foundation\Doctor.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\BuildScripts.Tests.ps1',
-    'pwsh -NoProfile -File .\tests\unit\foundation\CoverageGate.Tests.ps1'
+    'pwsh -NoProfile -File .\tests\unit\foundation\CoverageGate.Tests.ps1',
+    'dotnet test .\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj -c Debug -p:DearStoryPackageVersion=0.1.0',
+    'pwsh -NoProfile -File .\eng\assert-public-package-boundaries.ps1 -CppInstallPrefix'
 )
 
 foreach ($managedTestProject in $managedTestProjects) {

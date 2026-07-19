@@ -5,6 +5,12 @@
     <RootNamespace>DearStory.Sdk.Generator</RootNamespace>
     <LangVersion>latest</LangVersion>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <PackageId>DearStory.Sdk.Generator</PackageId>
+    <Description>Source generator and analyzer for DearStory .NET story registration.</Description>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
   </PropertyGroup>
 
   <ItemGroup>

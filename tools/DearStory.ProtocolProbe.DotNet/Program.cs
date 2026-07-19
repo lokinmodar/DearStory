@@ -1,7 +1,7 @@
 using System.Text.Json;
 using DearStory.Protocol;
 using DearStory.Protocol.Generated;
-using DearStory.Protocol.Windows;
+using DearStory.Transport.Windows;
 using GeneratedProtocolVersion = DearStory.Protocol.Generated.ProtocolVersion;
 using WireProtocolVersion = DearStory.Protocol.ProtocolVersion;
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DearStory.Testing;
 
 namespace DearStory.WindowsSlice.E2ETests;
 
@@ -25,6 +26,8 @@ internal static class DearStoryCommand
         };
 
         startInfo.ArgumentList.Add("run");
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(CurrentBuildConfiguration.CurrentConfiguration());
         startInfo.ArgumentList.Add("--project");
         startInfo.ArgumentList.Add(Path.Combine(repositoryRoot, "src", "runner", "dotnet", "DearStory.Runner", "DearStory.Runner.csproj"));
         startInfo.ArgumentList.Add("--");

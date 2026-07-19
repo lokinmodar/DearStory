@@ -83,6 +83,13 @@ function Test-DearStoryCoveragePackage {
 $ctestArguments = @('--preset', 'windows-msvc-debug', '--output-on-failure')
 $dotnetTestArguments = @('--no-build', '-m:1')
 $previousTestConfiguration = $env:DEARSTORY_TEST_CONFIGURATION
+$previousLocalFeed = $env:DearStoryLocalFeed
+$buildPropertiesPath = Join-Path $PWD 'Directory.Build.props'
+[xml]$buildProperties = Get-Content -LiteralPath $buildPropertiesPath
+$packageVersion = [string]$buildProperties.Project.PropertyGroup.VersionPrefix
+if ([string]::IsNullOrWhiteSpace($packageVersion)) {
+    throw "VersionPrefix was not found in '$buildPropertiesPath'."
+}
 
 if ($Configuration -eq 'Release') {
     $ctestArguments += @('-C', 'Release')
@@ -100,6 +107,27 @@ try {
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\BuildScripts.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\CoverageGate.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\VisualBaselineWorkflow.Tests.ps1')
+
+    $localFeedPath = [System.IO.Path]::GetFullPath((Join-Path $PWD 'artifacts\packages\local-feed'))
+    $installPrefix = [System.IO.Path]::GetFullPath((Join-Path $PWD 'artifacts\install\dearstory'))
+    $repositoryRoot = [System.IO.Path]::GetFullPath($PWD.Path)
+
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\pack.ps1', '-Configuration', $Configuration)
+    $env:DearStoryLocalFeed = $localFeedPath
+    Invoke-DearStoryCommand -Executable 'dotnet' -Arguments @('test', '.\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj', '-c', $Configuration, "-p:DearStoryPackageVersion=$packageVersion")
+    if ($script:DearStoryCmdlet.ShouldProcess($installPrefix, 'Clear C++ install prefix')) {
+        if (Test-Path -LiteralPath $installPrefix) {
+            Remove-Item -LiteralPath $installPrefix -Recurse -Force
+        }
+    }
+
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', '.\build\windows-msvc-debug', '--config', $Configuration, '--prefix', '.\artifacts\install\dearstory')
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\assert-public-package-boundaries.ps1', '-CppInstallPrefix', $installPrefix)
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\PublicPackageBoundaries.Tests.ps1', '-Configuration', $Configuration)
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'rm', '-rf', '.\build\consumers\cpp')
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-S', '.\tests\consumers\cpp', '-B', '.\build\consumers\cpp', ("-DCMAKE_PREFIX_PATH:PATH={0}" -f $installPrefix), ("-DCMAKE_TOOLCHAIN_FILE:FILEPATH={0}" -f (Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake')), ("-DVCPKG_MANIFEST_DIR:PATH={0}" -f $repositoryRoot), ("-DCMAKE_CONFIGURATION_TYPES:STRING={0}" -f $Configuration))
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--build', '.\build\consumers\cpp', '--config', $Configuration)
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'chdir', '.\build\consumers\cpp', 'ctest', '-C', $Configuration, '--output-on-failure')
 
     if (-not $Coverage) {
         return
@@ -202,5 +230,12 @@ finally {
     }
     else {
         $env:DEARSTORY_TEST_CONFIGURATION = $previousTestConfiguration
+    }
+
+    if ($null -eq $previousLocalFeed) {
+        Remove-Item Env:DearStoryLocalFeed -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DearStoryLocalFeed = $previousLocalFeed
     }
 }

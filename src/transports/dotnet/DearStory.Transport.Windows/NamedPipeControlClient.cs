@@ -1,6 +1,8 @@
 using System.IO.Pipes;
 
-namespace DearStory.Protocol.Windows;
+using DearStory.Protocol;
+
+namespace DearStory.Transport.Windows;
 
 /// <summary>Represents one framed DearStory control connection over a named pipe.</summary>
 public sealed class NamedPipeConnection : IAsyncDisposable

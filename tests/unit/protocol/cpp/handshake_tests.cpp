@@ -11,8 +11,8 @@
 #include <dearstory/protocol/control_envelope.hpp>
 #include <dearstory/protocol/codec.hpp>
 #include <dearstory/protocol/handshake.hpp>
-#include <dearstory/protocol/windows/named_pipe_client.hpp>
-#include <dearstory/protocol/windows/named_pipe_server.hpp>
+#include <dearstory/transports/windows/named_pipe_client.hpp>
+#include <dearstory/transports/windows/named_pipe_server.hpp>
 #include <Windows.h>
 
 namespace
@@ -197,12 +197,12 @@ TEST_CASE("protocol_handshake rejects duplicate capabilities")
 TEST_CASE("protocol_pipe exchanges two framed messages in order")
 {
     auto const pipe_name = unique_pipe_name();
-    dearstory::protocol::windows::named_pipe_server server(pipe_name);
+    dearstory::transports::windows::named_pipe_server server(pipe_name);
     auto accepted = std::async(std::launch::async, [&server] {
         return server.accept(std::stop_token{});
     });
 
-    auto client = dearstory::protocol::windows::named_pipe_client::connect(pipe_name, std::stop_token{});
+    auto client = dearstory::transports::windows::named_pipe_client::connect(pipe_name, std::stop_token{});
     auto server_connection = accepted.get();
 
     const auto first = dearstory::protocol::encode(make_runtime_hello("01010101-0101-4101-8101-010101010101"));
@@ -237,7 +237,7 @@ TEST_CASE("protocol_pipe exchanges two framed messages in order")
 TEST_CASE("protocol_pipe can cancel an accept before a client connects")
 {
     auto const pipe_name = unique_pipe_name();
-    dearstory::protocol::windows::named_pipe_server server(pipe_name);
+    dearstory::transports::windows::named_pipe_server server(pipe_name);
     std::stop_source stop_source;
     stop_source.request_stop();
 
@@ -247,7 +247,7 @@ TEST_CASE("protocol_pipe can cancel an accept before a client connects")
 TEST_CASE("protocol_pipe rejects a peer disconnect in the middle of a frame")
 {
     auto const pipe_name = unique_pipe_name();
-    dearstory::protocol::windows::named_pipe_server server(pipe_name);
+    dearstory::transports::windows::named_pipe_server server(pipe_name);
     auto accepted = std::async(std::launch::async, [&server] {
         return server.accept(std::stop_token{});
     });
@@ -283,17 +283,17 @@ TEST_CASE("protocol_pipe rejects a peer disconnect in the middle of a frame")
 TEST_CASE("protocol_pipe rejects a second client while the first holds the only server instance")
 {
     auto const pipe_name = unique_pipe_name();
-    dearstory::protocol::windows::named_pipe_server server(pipe_name);
+    dearstory::transports::windows::named_pipe_server server(pipe_name);
     auto accepted = std::async(std::launch::async, [&server] {
         return server.accept(std::stop_token{});
     });
 
-    auto first_client = dearstory::protocol::windows::named_pipe_client::connect(pipe_name, std::stop_token{});
+    auto first_client = dearstory::transports::windows::named_pipe_client::connect(pipe_name, std::stop_token{});
     auto server_connection = accepted.get();
 
     std::stop_source stop_source;
     auto second_connect = std::async(std::launch::async, [&] {
-        return dearstory::protocol::windows::named_pipe_client::connect(pipe_name, stop_source.get_token());
+        return dearstory::transports::windows::named_pipe_client::connect(pipe_name, stop_source.get_token());
     });
 
     stop_source.request_stop();

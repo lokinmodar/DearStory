@@ -2,6 +2,9 @@
   <PropertyGroup>
     <AssemblyName>DearStory.Core</AssemblyName>
     <RootNamespace>DearStory.Core</RootNamespace>
+    <PackageId>DearStory.Core</PackageId>
+    <Description>Shared DearStory story model, schema, session, and deterministic services.</Description>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

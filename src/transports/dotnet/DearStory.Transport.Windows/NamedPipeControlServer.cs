@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace DearStory.Protocol.Windows;
+namespace DearStory.Transport.Windows;
 
 /// <summary>Accepts one client-side DearStory control connection over a Windows named pipe.</summary>
 public sealed class NamedPipeControlServer : IAsyncDisposable

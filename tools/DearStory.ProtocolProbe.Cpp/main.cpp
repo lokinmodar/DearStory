@@ -15,8 +15,8 @@
 #include <dearstory/protocol/codec.hpp>
 #include <dearstory/protocol/generated/messages.hpp>
 #include <dearstory/protocol/handshake.hpp>
-#include <dearstory/protocol/windows/named_pipe_client.hpp>
-#include <dearstory/protocol/windows/named_pipe_server.hpp>
+#include <dearstory/transports/windows/named_pipe_client.hpp>
+#include <dearstory/transports/windows/named_pipe_server.hpp>
 
 namespace
 {
@@ -309,7 +309,7 @@ namespace
     [[nodiscard]] int run_server(options const& options)
     {
         timeout_scope timeout{};
-        dearstory::protocol::windows::named_pipe_server server(normalize_pipe_path(options.pipe));
+        dearstory::transports::windows::named_pipe_server server(normalize_pipe_path(options.pipe));
         auto connection = server.accept(timeout.token());
         auto payload = connection.read_payload(timeout.token());
         if (!payload.has_value())
@@ -334,7 +334,7 @@ namespace
     [[nodiscard]] int run_client(options const& options)
     {
         timeout_scope timeout{};
-        auto connection = dearstory::protocol::windows::named_pipe_client::connect(normalize_pipe_path(options.pipe), timeout.token());
+        auto connection = dearstory::transports::windows::named_pipe_client::connect(normalize_pipe_path(options.pipe), timeout.token());
         auto hello = build_hello(options);
         connection.write_payload(dearstory::protocol::encode(hello));
         auto response_payload = connection.read_payload(timeout.token());
@@ -378,7 +378,7 @@ int main(int argc, char** argv)
         std::cerr << exception.what() << '\n';
         return exit_usage;
     }
-    catch (dearstory::protocol::windows::pipe_exception const& exception)
+    catch (dearstory::transports::windows::pipe_exception const& exception)
     {
         if (exception.error().code == "protocol.operation_cancelled")
         {

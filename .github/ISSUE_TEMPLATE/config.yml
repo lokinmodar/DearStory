@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: DearStory README
+    url: https://github.com/lokinmodar/DearStory#readme
+    about: Start here for project context, current status, and documentation entry points.
+  - name: DearStory package and workflow docs
+    url: https://github.com/lokinmodar/DearStory/tree/main/docs
+    about: Review package consumption, build, and release guidance before opening an issue.
+
