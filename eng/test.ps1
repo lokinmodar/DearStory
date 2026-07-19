@@ -43,8 +43,7 @@ $managedTestProjects = @(
     '.\tests\e2e\windows\DearStory.WindowsSlice.E2ETests\DearStory.WindowsSlice.E2ETests.csproj',
     '.\tests\unit\runner\dotnet\DearStory.Runner.Tests\DearStory.Runner.Tests.csproj',
     '.\tests\unit\sdk\dotnet\DearStory.Sdk.Tests\DearStory.Sdk.Tests.csproj',
-    '.\tests\unit\sdk\dotnet\DearStory.Sdk.Generator.Tests\DearStory.Sdk.Generator.Tests.csproj',
-    '.\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj'
+    '.\tests\unit\sdk\dotnet\DearStory.Sdk.Generator.Tests\DearStory.Sdk.Generator.Tests.csproj'
 )
 
 $managedCoveragePackages = @(
@@ -94,24 +93,23 @@ if ($Configuration -eq 'Release') {
 try {
     $env:DEARSTORY_TEST_CONFIGURATION = $Configuration
 
-    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\pack.ps1', '-Configuration', $Configuration)
-    $env:DearStoryLocalFeed = [System.IO.Path]::GetFullPath((Join-Path $PWD 'artifacts\packages\local-feed'))
-
     Invoke-DearStoryCommand -Executable 'ctest' -Arguments $ctestArguments
     foreach ($managedTestProject in $managedTestProjects) {
-        $testArguments = if ($managedTestProject -like '*DearStory.Consumer.Smoke.csproj') {
-            @('test', $managedTestProject, '-m:1')
-        }
-        else {
-            @('test', $managedTestProject) + $dotnetTestArguments
-        }
-
-        Invoke-DearStoryCommand -Executable 'dotnet' -Arguments $testArguments
+        Invoke-DearStoryCommand -Executable 'dotnet' -Arguments (@('test', $managedTestProject) + $dotnetTestArguments)
     }
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\Doctor.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\BuildScripts.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\CoverageGate.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\VisualBaselineWorkflow.Tests.ps1')
+
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\pack.ps1', '-Configuration', $Configuration)
+    $env:DearStoryLocalFeed = (Resolve-Path '.\artifacts\packages\local-feed').Path
+    Invoke-DearStoryCommand -Executable 'dotnet' -Arguments @('test', '.\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj', '-c', $Configuration)
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', '.\build\windows-msvc-debug', '--config', $Configuration, '--prefix', '.\artifacts\install\dearstory')
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'rm', '-rf', '.\build\consumers\cpp')
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-S', '.\tests\consumers\cpp', '-B', '.\build\consumers\cpp', ("-DCMAKE_PREFIX_PATH:PATH={0}" -f (Resolve-Path '.\artifacts\install\dearstory').Path), ("-DCMAKE_TOOLCHAIN_FILE:FILEPATH={0}" -f (Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake')), ("-DVCPKG_MANIFEST_DIR:PATH={0}" -f (Resolve-Path '.').Path))
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--build', '.\build\consumers\cpp', '--config', $Configuration)
+    Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'chdir', '.\build\consumers\cpp', 'ctest', '-C', $Configuration, '--output-on-failure')
 
     if (-not $Coverage) {
         return
