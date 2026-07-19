@@ -15,7 +15,7 @@ if ([string]::IsNullOrWhiteSpace($version)) {
     throw "Version file '$Path' does not contain a non-empty 'version' value."
 }
 
-if ($version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') {
+if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
     throw "Version '$version' is not a stable SemVer value."
 }
 

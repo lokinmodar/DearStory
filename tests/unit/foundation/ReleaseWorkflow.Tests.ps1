@@ -1,5 +1,129 @@
 $ErrorActionPreference = 'Stop'
 
+function Get-ReleasePublishScript {
+    $workflow = Get-Content .\.github\workflows\release.yml -Raw
+    $publishScript = [regex]::Match(
+        $workflow,
+        '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+    ).Groups['script'].Value
+    if ([string]::IsNullOrWhiteSpace($publishScript)) {
+        throw 'Unable to extract the publish step from the release workflow.'
+    }
+
+    return $publishScript
+}
+
+function Get-ReleaseAssetReconciliationScript {
+    $assetScript = [regex]::Match(
+        (Get-ReleasePublishScript),
+        '(?ms)(?<script>^\s{10}\$existingAssetRoot = Join-Path .*?^\s{10}\})\r?\n\r?\n\s{10}\$publishedPackages = @\(Get-PublishedPackages\)'
+    ).Groups['script'].Value -replace '(?m)^ {10}', ''
+    if ([string]::IsNullOrWhiteSpace($assetScript)) {
+        throw 'Unable to extract the asset reconciliation block from the release workflow.'
+    }
+
+    return $assetScript
+}
+
+function Invoke-ReleaseAssetReconciliation {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('Absent', 'Identical', 'Conflicting')]
+        [string] $Scenario
+    )
+
+    $assetScript = Get-ReleaseAssetReconciliationScript
+    $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-assets-{0}" -f [guid]::NewGuid().ToString('N'))
+    $releaseRoot = Join-Path $fixtureRoot 'release'
+    $remoteAssetRoot = Join-Path $fixtureRoot 'remote-assets'
+    $version = '0.1.0'
+    $tag = "v$version"
+    $manifestPath = Join-Path $releaseRoot 'release-manifest.json'
+    $commandLog = [System.Collections.Generic.List[string]]::new()
+    $originalRunnerTemp = [Environment]::GetEnvironmentVariable('RUNNER_TEMP', 'Process')
+    $originalGhRepo = [Environment]::GetEnvironmentVariable('GH_REPO', 'Process')
+    try {
+        New-Item -ItemType Directory -Force -Path (Join-Path $releaseRoot 'cpp'), $remoteAssetRoot | Out-Null
+
+        $localAssets = [ordered]@{
+            "DearStory-cpp-$version-windows-msvc-x64.zip" = Join-Path $releaseRoot "cpp\DearStory-cpp-$version-windows-msvc-x64.zip"
+            'SHA256SUMS' = Join-Path $releaseRoot 'SHA256SUMS'
+            'release-manifest.json' = $manifestPath
+        }
+
+        Set-Content -LiteralPath $localAssets["DearStory-cpp-$version-windows-msvc-x64.zip"] -Value 'local-cpp-archive' -NoNewline
+        Set-Content -LiteralPath $localAssets['SHA256SUMS'] -Value 'local-sha256sums' -NoNewline
+        Set-Content -LiteralPath $localAssets['release-manifest.json'] -Value '{"version":"0.1.0"}' -NoNewline
+
+        $existingReleaseAssetNames = @()
+        switch ($Scenario) {
+            'Identical' {
+                foreach ($assetName in $localAssets.Keys) {
+                    Copy-Item -LiteralPath $localAssets[$assetName] -Destination (Join-Path $remoteAssetRoot $assetName)
+                }
+                $existingReleaseAssetNames = @($localAssets.Keys)
+            }
+            'Conflicting' {
+                $conflictingAssetName = "DearStory-cpp-$version-windows-msvc-x64.zip"
+                Set-Content -LiteralPath (Join-Path $remoteAssetRoot $conflictingAssetName) -Value 'conflicting-cpp-archive' -NoNewline
+                $existingReleaseAssetNames = @($conflictingAssetName)
+            }
+        }
+
+        function gh {
+            param(
+                [Parameter(ValueFromRemainingArguments = $true)]
+                [string[]] $Arguments
+            )
+
+            $commandLog.Add(($Arguments -join ' '))
+            $command = ($Arguments[0..1] -join ' ')
+            switch ($command) {
+                'release view' {
+                    $global:LASTEXITCODE = 0
+                    return ([pscustomobject]@{
+                            assets = @($existingReleaseAssetNames | ForEach-Object {
+                                    [pscustomobject]@{ name = $_ }
+                                })
+                        } | ConvertTo-Json -Compress)
+                }
+                'release download' {
+                    $assetName = $Arguments[[array]::IndexOf($Arguments, '--pattern') + 1]
+                    $destinationRoot = $Arguments[[array]::IndexOf($Arguments, '--dir') + 1]
+                    Copy-Item -LiteralPath (Join-Path $remoteAssetRoot $assetName) -Destination (Join-Path $destinationRoot $assetName)
+                    $global:LASTEXITCODE = 0
+                    return
+                }
+                'release upload' {
+                    $assetPath = $Arguments[3]
+                    Copy-Item -LiteralPath $assetPath -Destination (Join-Path $remoteAssetRoot ([System.IO.Path]::GetFileName($assetPath)))
+                    $global:LASTEXITCODE = 0
+                    return
+                }
+                default {
+                    $global:LASTEXITCODE = 1
+                    throw "Unhandled fake gh command: $($Arguments -join ' ')"
+                }
+            }
+        }
+
+        [Environment]::SetEnvironmentVariable('RUNNER_TEMP', (Join-Path $fixtureRoot 'runner-temp'), 'Process')
+        [Environment]::SetEnvironmentVariable('GH_REPO', 'dearstory/tests', 'Process')
+        New-Item -ItemType Directory -Force -Path $env:RUNNER_TEMP | Out-Null
+        $global:LASTEXITCODE = 0
+        Invoke-Expression $assetScript
+
+        return [pscustomobject]@{
+            CommandLog = @($commandLog)
+        }
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('RUNNER_TEMP', $originalRunnerTemp, 'Process')
+        [Environment]::SetEnvironmentVariable('GH_REPO', $originalGhRepo, 'Process')
+        Remove-Item -LiteralPath $fixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Describe 'Release workflow' {
     It 'supports tag and manual release triggers' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
@@ -285,6 +409,29 @@ Describe 'Release workflow' {
         $releaseFinalization | Should BeGreaterThan $finalPackageVerification
     }
 
+    It 'uploads required release assets when the draft does not already contain them' {
+        $result = Invoke-ReleaseAssetReconciliation -Scenario Absent
+
+        $result.CommandLog.Count | Should Be 4
+        @($result.CommandLog | Where-Object { $_ -match '^release upload ' }).Count | Should Be 3
+        ($result.CommandLog -join "`n") | Should Match 'release upload v0\.1\.0 .*DearStory-cpp-0\.1\.0-windows-msvc-x64\.zip --repo dearstory/tests'
+        ($result.CommandLog -join "`n") | Should Match 'release upload v0\.1\.0 .*SHA256SUMS --repo dearstory/tests'
+        ($result.CommandLog -join "`n") | Should Match 'release upload v0\.1\.0 .*release-manifest\.json --repo dearstory/tests'
+    }
+
+    It 'reuses identical existing draft assets without uploading replacements' {
+        $result = Invoke-ReleaseAssetReconciliation -Scenario Identical
+
+        $result.CommandLog.Count | Should Be 4
+        @($result.CommandLog | Where-Object { $_ -match '^release download ' }).Count | Should Be 3
+        @($result.CommandLog | Where-Object { $_ -match '^release upload ' }).Count | Should Be 0
+    }
+
+    It 'fails when an existing draft asset has conflicting content' {
+        { Invoke-ReleaseAssetReconciliation -Scenario Conflicting } |
+            Should Throw "GitHub release asset 'DearStory-cpp-0.1.0-windows-msvc-x64.zip' already exists with different content."
+    }
+
     It 'contains syntactically valid PowerShell in release state steps' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $stepPatterns = @(
@@ -315,7 +462,24 @@ Describe 'Release workflow' {
 
     It 'documents partial NuGet publication as fail-fast and non-resumable' {
         $releaseGuide = Get-Content .\docs\guides\releasing-packages.md -Raw
-        $releaseGuide | Should Match 'does not resume a partial NuGet publication'
+        $releaseGuide | Should Match 'does not resume a partial NuGet\s+publication'
         $releaseGuide | Should Match 'before\s+pushing any additional package'
+    }
+
+    It 'documents draft asset reconciliation before NuGet publication and uses a neutral local SourceRef example' {
+        $releaseGuide = Get-Content .\docs\guides\releasing-packages.md -Raw
+        $draftIndex = $releaseGuide.IndexOf('create or reuse the draft GitHub Release')
+        $assetIndex = $releaseGuide.IndexOf('reconcile or upload the required GitHub release assets')
+        $nugetIndex = $releaseGuide.IndexOf('publish the four NuGet packages')
+        $verificationIndex = $releaseGuide.IndexOf('verify the full public package set')
+        $publishIndex = $releaseGuide.IndexOf('publish the GitHub Release')
+
+        $draftIndex | Should BeGreaterThan -1
+        $assetIndex | Should BeGreaterThan $draftIndex
+        $nugetIndex | Should BeGreaterThan $assetIndex
+        $verificationIndex | Should BeGreaterThan $nugetIndex
+        $publishIndex | Should BeGreaterThan $verificationIndex
+        $releaseGuide | Should Not Match 'refs/heads/feature/phase-3-release-automation'
+        $releaseGuide | Should Match '-SourceRef refs/heads/main'
     }
 }

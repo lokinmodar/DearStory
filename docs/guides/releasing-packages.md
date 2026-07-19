@@ -68,15 +68,22 @@ present:
 - `SHA256SUMS`
 - `release-manifest.json`
 
-The four NuGet packages are published and verified against the release unit,
-then the public C++ archive, `SHA256SUMS`, and `release-manifest.json` are
-uploaded. Only after all coordinated publication steps succeed does the
-workflow change the GitHub Release from `draft` to published. If any step
-fails, the GitHub Release remains in `draft` rather than presenting a partial
-public release. A rerun does not resume a partial NuGet publication: if NuGet
-already contains only a subset of the four packages, the workflow fails before
-pushing any additional package and leaves the GitHub Release in `draft` for
-manual resolution.
+The coordinated publication order is:
+
+1. create or reuse the draft GitHub Release
+2. reconcile or upload the required GitHub release assets
+3. publish the four NuGet packages
+4. verify the full public package set
+5. publish the GitHub Release
+
+The required GitHub release assets are the public C++ archive, `SHA256SUMS`,
+and `release-manifest.json`. Only after all coordinated publication steps
+succeed does the workflow change the GitHub Release from `draft` to published.
+If any step fails, the GitHub Release remains in `draft` rather than
+presenting a partial public release. A rerun does not resume a partial NuGet
+publication: if NuGet already contains only a subset of the four packages, the
+workflow fails before pushing any additional package and leaves the GitHub
+Release in `draft` for manual resolution.
 
 ## .NET package publishing
 
@@ -144,7 +151,7 @@ test gates:
 $version = (& .\eng\read-version.ps1).Version
 $commit = (git rev-parse HEAD).Trim()
 pwsh -NoProfile -File .\eng\release.ps1 -ReleaseMode Local `
-  -ExpectedVersion $version -SourceRef refs/heads/feature/phase-3-release-automation `
+  -ExpectedVersion $version -SourceRef refs/heads/main `
   -SourceCommit $commit -SkipBuild -SkipTest
 ```
 

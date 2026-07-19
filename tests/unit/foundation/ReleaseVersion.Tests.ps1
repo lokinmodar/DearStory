@@ -27,6 +27,7 @@ $invalidVersionDocuments = @(
     @{ Name = 'leading-zero major component'; Content = '{"version":"01.2.3"}' },
     @{ Name = 'leading-zero minor component'; Content = '{"version":"1.02.3"}' },
     @{ Name = 'leading-zero patch component'; Content = '{"version":"1.2.03"}' },
+    @{ Name = 'unicode decimal digits'; Content = ('{{"version":"{0}.{1}.{2}"}}' -f [char]0x0661, [char]0x0662, [char]0x0663) },
     @{ Name = 'missing version'; Content = '{}' },
     @{ Name = 'empty version'; Content = '{"version":""}' },
     @{ Name = 'malformed JSON'; Content = '{"version":' }
