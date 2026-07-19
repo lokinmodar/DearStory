@@ -205,6 +205,52 @@ jobs:
             return @($published)
           }
 
+          function Get-NormalizedPackageContentHash {
+            param(
+              [Parameter(Mandatory)]
+              [string] $PackagePath
+            )
+
+            $packageArchive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+            try {
+              $contentManifest = foreach ($entry in @($packageArchive.Entries |
+                  Where-Object { $_.FullName -ine '.signature.p7s' } |
+                  Sort-Object -Property FullName)) {
+                if ([string]::IsNullOrEmpty($entry.Name)) {
+                  continue
+                }
+
+                $entryStream = $entry.Open()
+                try {
+                  $entryHashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+                  try {
+                    $entryHash = $entryHashAlgorithm.ComputeHash($entryStream)
+                  }
+                  finally {
+                    $entryHashAlgorithm.Dispose()
+                  }
+                }
+                finally {
+                  $entryStream.Dispose()
+                }
+
+                '{0}:{1}' -f $entry.FullName, [Convert]::ToBase64String($entryHash)
+              }
+
+              $manifestHashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+              try {
+                $manifestBytes = [System.Text.Encoding]::UTF8.GetBytes(($contentManifest -join "`n"))
+                return [Convert]::ToHexString($manifestHashAlgorithm.ComputeHash($manifestBytes))
+              }
+              finally {
+                $manifestHashAlgorithm.Dispose()
+              }
+            }
+            finally {
+              $packageArchive.Dispose()
+            }
+          }
+
           function Assert-PublishedPackageMatchesReleaseUnit {
             param(
               [Parameter(Mandatory)]
@@ -218,9 +264,9 @@ jobs:
             $publishedPackagePath = Join-Path $publishedPackageRoot "$normalizedPackageId.$normalizedVersion.nupkg"
 
             Invoke-WebRequest -Uri $packageUri -OutFile $publishedPackagePath
-            $releasePackageHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash
-            $publishedPackageHash = (Get-FileHash -LiteralPath $publishedPackagePath -Algorithm SHA256).Hash
-            if ($publishedPackageHash -ne $releasePackageHash) {
+            $releasePackageContentHash = Get-NormalizedPackageContentHash -PackagePath $packagePath
+            $publishedPackageContentHash = Get-NormalizedPackageContentHash -PackagePath $publishedPackagePath
+            if ($publishedPackageContentHash -ne $releasePackageContentHash) {
               throw "Published NuGet package '$PackageId' version '$version' does not match the coordinated release unit."
             }
           }
