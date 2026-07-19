@@ -50,10 +50,78 @@ Describe 'Release workflow' {
             $workflow,
             '(?ms)^\s{6}- name: Resolve release context.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{2}\S)'
         ).Groups['script'].Value
+        $validationScript = [regex]::Match(
+            $contextScript,
+            '(?ms)(?<validation>^\s{12}git fetch origin main.*?^\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ref.*?^\s{12}\}\r?\n\r?\n\s{12}git merge-base --is-ancestor \$sourceCommit origin/main\r?\n\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ref.*?^\s{12}\})'
+        ).Groups['validation'].Value -replace '(?m)^ {12}', ''
+        $validationScript | Should Not BeNullOrEmpty
 
-        $contextScript | Should Match 'git fetch origin main'
-        $contextScript | Should Not Match 'git fetch origin main\s+--depth'
-        $contextScript | Should Match 'git merge-base --is-ancestor \$sourceCommit origin/main'
+        $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-manual-release-ancestor-{0}" -f [guid]::NewGuid().ToString('N'))
+        $sourceRepository = Join-Path $fixtureRoot 'source'
+        $shallowValidationRepository = Join-Path $fixtureRoot 'shallow-validation'
+        $validationRepository = Join-Path $fixtureRoot 'validation'
+        $shallowValidationRunner = Join-Path $fixtureRoot 'validate-manual-release-shallow.ps1'
+        $validationRunner = Join-Path $fixtureRoot 'validate-manual-release.ps1'
+        try {
+            New-Item -ItemType Directory -Force -Path $sourceRepository | Out-Null
+            & git -C $sourceRepository init --quiet --initial-branch main
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Unable to initialize the manual release ancestry fixture repository.'
+            }
+
+            & git -C $sourceRepository config user.name 'DearStory Release Test'
+            & git -C $sourceRepository config user.email 'release-test@dearstory.invalid'
+            Set-Content -LiteralPath (Join-Path $sourceRepository 'ancestor.txt') -Value 'ancestor' -NoNewline
+            & git -C $sourceRepository add ancestor.txt
+            & git -C $sourceRepository commit --quiet -m 'test: create release ancestor'
+            $nonTipAncestor = (& git -C $sourceRepository rev-parse HEAD).Trim()
+
+            Set-Content -LiteralPath (Join-Path $sourceRepository 'tip.txt') -Value 'tip' -NoNewline
+            & git -C $sourceRepository add tip.txt
+            & git -C $sourceRepository commit --quiet -m 'test: advance main beyond release ancestor'
+            $mainTip = (& git -C $sourceRepository rev-parse HEAD).Trim()
+            if ($nonTipAncestor -eq $mainTip) {
+                throw 'Expected the manual release fixture ancestor not to be the main tip.'
+            }
+
+            & git clone --quiet $sourceRepository $shallowValidationRepository
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Unable to clone the manual release ancestry fixture repository.'
+            }
+
+            $shallowValidationScript = $validationScript -replace '(?m)^git fetch origin main$', 'git fetch origin main --depth=1'
+            @(
+                'param([Parameter(Mandatory)][string] $ManualRef)',
+                '$ErrorActionPreference = ''Stop''',
+                '$env:MANUAL_REF = $ManualRef',
+                $shallowValidationScript
+            ) | Set-Content -LiteralPath $shallowValidationRunner
+
+            $shallowValidationOutput = & pwsh -NoProfile -WorkingDirectory $shallowValidationRepository -File $shallowValidationRunner -ManualRef $nonTipAncestor 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                throw "Expected depth-limited manual release validation to reject non-tip ancestor '$nonTipAncestor'."
+            }
+
+            & git clone --quiet $sourceRepository $validationRepository
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Unable to clone the manual release ancestry fixture repository.'
+            }
+
+            @(
+                'param([Parameter(Mandatory)][string] $ManualRef)',
+                '$ErrorActionPreference = ''Stop''',
+                '$env:MANUAL_REF = $ManualRef',
+                $validationScript
+            ) | Set-Content -LiteralPath $validationRunner
+
+            $validationOutput = & pwsh -NoProfile -WorkingDirectory $validationRepository -File $validationRunner -ManualRef $nonTipAncestor 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Expected manual release validation to accept non-tip ancestor '$nonTipAncestor' reachable from main. Output: $($validationOutput -join [Environment]::NewLine)"
+            }
+        }
+        finally {
+            Remove-Item -LiteralPath $fixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
     It 'passes validated build inputs to PowerShell through the environment' {
