@@ -103,6 +103,7 @@ try {
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\ReleaseVersion.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\BuildScripts.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\ReleaseScripts.Tests.ps1')
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\ReleaseWorkflow.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\CoverageGate.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\VisualBaselineWorkflow.Tests.ps1')
 

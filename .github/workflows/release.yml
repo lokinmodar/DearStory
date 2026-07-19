@@ -1,0 +1,199 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Commit, branch or tag to release'
+        required: true
+        type: string
+      version:
+        description: 'Version expected in eng/version.json'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dearstory-release-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: windows-2022
+    outputs:
+      version: ${{ steps.context.outputs.version }}
+      tag_name: ${{ steps.context.outputs.tag_name }}
+      source_ref: ${{ steps.context.outputs.source_ref }}
+      source_commit: ${{ steps.context.outputs.source_commit }}
+      checkout_ref: ${{ steps.context.outputs.checkout_ref }}
+      release_mode: ${{ steps.context.outputs.release_mode }}
+    steps:
+      - name: Checkout selected ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+
+      - name: Resolve release context
+        id: context
+        shell: pwsh
+        run: |
+          $versionInfo = & .\eng\read-version.ps1
+          $tagName = $versionInfo.Tag
+
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            if ('${{ inputs.version }}' -ne $versionInfo.Version) {
+              throw "Manual release version '${{ inputs.version }}' does not match repository version '$($versionInfo.Version)'."
+            }
+
+            git fetch origin main --depth=1
+            $sourceCommit = (git rev-parse '${{ inputs.ref }}').Trim()
+            git merge-base --is-ancestor $sourceCommit origin/main
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ref '${{ inputs.ref }}' is not reachable from origin/main."
+            }
+
+            "version=$($versionInfo.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "tag_name=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "source_ref=${{ inputs.ref }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "source_commit=$sourceCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "checkout_ref=$sourceCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "release_mode=Manual" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+
+          if ($env:GITHUB_REF_NAME -ne $tagName) {
+            throw "Tag '$env:GITHUB_REF_NAME' does not match repository version tag '$tagName'."
+          }
+
+          "version=$($versionInfo.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag_name=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_ref=$env:GITHUB_REF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_commit=$(git rev-parse HEAD)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "checkout_ref=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_mode=Tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+  build_release_unit:
+    needs: validate
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.cache\vcpkg\archives
+      NUGET_PACKAGES: ${{ github.workspace }}\.cache\nuget\packages
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.validate.outputs.checkout_ref }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+
+      - name: Prepare vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
+          git -C $env:VCPKG_ROOT checkout 1db84273378ff8e2d30e7bc7fdd5d1cb4f4260fc
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force -Path .\artifacts\logs, .\.cache\vcpkg\archives, .\.cache\nuget\packages | Out-Null
+
+      - name: Doctor
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\doctor.ps1
+
+      - name: Check generated protocol sources
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\generate-protocol.ps1 -Check
+
+      - name: Build release unit
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File .\eng\release.ps1 `
+            -ReleaseMode ${{ needs.validate.outputs.release_mode }} `
+            -ExpectedVersion ${{ needs.validate.outputs.version }} `
+            -SourceRef "${{ needs.validate.outputs.source_ref }}" `
+            -SourceCommit "${{ needs.validate.outputs.source_commit }}"
+
+      - name: Upload release unit
+        uses: actions/upload-artifact@v4
+        with:
+          name: dearstory-release-unit-${{ needs.validate.outputs.version }}
+          path: artifacts/releases/${{ needs.validate.outputs.version }}
+          if-no-files-found: error
+
+  publish:
+    needs: [validate, build_release_unit]
+    runs-on: windows-2022
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Download release unit
+        uses: actions/download-artifact@v4
+        with:
+          name: dearstory-release-unit-${{ needs.validate.outputs.version }}
+          path: artifacts/releases/${{ needs.validate.outputs.version }}
+
+      - name: Publish NuGet packages and finalize draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          $version = '${{ needs.validate.outputs.version }}'
+          $tag = '${{ needs.validate.outputs.tag_name }}'
+          $releaseRoot = Join-Path $PWD "artifacts\releases\$version"
+          $manifestPath = Join-Path $releaseRoot 'release-manifest.json'
+          $packageBaseUrl = 'https://api.nuget.org/v3-flatcontainer'
+          $packageIds = @(
+            'DearStory.Protocol',
+            'DearStory.Core',
+            'DearStory.Sdk',
+            'DearStory.Sdk.Generator'
+          )
+
+          $publishedPackages = @()
+          foreach ($packageId in $packageIds) {
+            $indexUrl = '{0}/{1}/index.json' -f $packageBaseUrl, $packageId.ToLowerInvariant()
+            try {
+              $index = Invoke-RestMethod -Uri $indexUrl
+              if ($index.versions -contains $version) {
+                $publishedPackages += $packageId
+              }
+            }
+            catch {
+            }
+          }
+
+          if ($publishedPackages.Count -gt 0 -and $publishedPackages.Count -lt $packageIds.Count) {
+            throw "Partial NuGet publication already exists for version $version: $($publishedPackages -join ', ')."
+          }
+
+          gh release view $tag --json isDraft 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --target '${{ needs.validate.outputs.source_commit }}' --draft --title "DearStory $tag" --notes-file $manifestPath
+          }
+
+          if ($publishedPackages.Count -eq 0) {
+            foreach ($packageId in $packageIds) {
+              $packagePath = Join-Path $releaseRoot "dotnet\$packageId.$version.nupkg"
+              dotnet nuget push $packagePath --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+              if ($LASTEXITCODE -ne 0) {
+                throw "NuGet publication failed for '$packageId'."
+              }
+            }
+          }
+
+          gh release upload $tag "$releaseRoot\cpp\DearStory-cpp-$version-windows-msvc-x64.zip" "$releaseRoot\SHA256SUMS" "$releaseRoot\release-manifest.json" --clobber
+          gh release edit $tag --draft=false --title "DearStory $tag" --notes-file $manifestPath
