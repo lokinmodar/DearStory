@@ -43,6 +43,13 @@ if ($ExpectedVersion -and $ExpectedVersion -ne $versionInfo.Version) {
     throw "Expected version '$ExpectedVersion' does not match repository version '$($versionInfo.Version)'."
 }
 
+if ($ReleaseMode -eq 'Tag') {
+    $expectedTagRef = "refs/tags/v$($versionInfo.Version)"
+    if ($SourceRef -ne $expectedTagRef) {
+        throw "Tag releases require SourceRef '$expectedTagRef'."
+    }
+}
+
 if ([string]::IsNullOrWhiteSpace($SourceCommit)) {
     $SourceCommit = (git rev-parse HEAD).Trim()
 }
@@ -55,12 +62,14 @@ else {
     Join-Path $repositoryRoot $OutputRoot
 }
 $releaseRoot = Join-Path ([System.IO.Path]::GetFullPath($outputRootPath)) $versionInfo.Version
-$dotnetReleaseDirectory = Join-Path $releaseRoot 'dotnet'
-$cppReleaseDirectory = Join-Path $releaseRoot 'cpp'
-$stagingInstallPrefix = Join-Path $repositoryRoot 'artifacts\install\dearstory-release'
+$stagingReleaseRoot = Join-Path ([System.IO.Path]::GetDirectoryName($releaseRoot)) (".{0}.staging.{1}" -f $versionInfo.Version, [guid]::NewGuid().ToString('N'))
+$dotnetReleaseDirectory = Join-Path $stagingReleaseRoot 'dotnet'
+$cppReleaseDirectory = Join-Path $stagingReleaseRoot 'cpp'
+$stagingInstallPrefix = Join-Path $repositoryRoot ("artifacts\install\dearstory-release-{0}" -f [guid]::NewGuid().ToString('N'))
 $cppArchivePath = Join-Path $cppReleaseDirectory ("DearStory-cpp-{0}-windows-msvc-x64.zip" -f $versionInfo.Version)
-$checksumPath = Join-Path $releaseRoot 'SHA256SUMS'
-$manifestPath = Join-Path $releaseRoot 'release-manifest.json'
+$checksumPath = Join-Path $stagingReleaseRoot 'SHA256SUMS'
+$manifestPath = Join-Path $stagingReleaseRoot 'release-manifest.json'
+$releasePromoted = $false
 
 if (-not $SkipBuild) {
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\build.ps1', '-Configuration', $Configuration)
@@ -72,10 +81,14 @@ if (-not $SkipTest) {
 
 Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\pack.ps1', '-Configuration', $Configuration)
 
-if ($script:DearStoryCmdlet.ShouldProcess($releaseRoot, 'Prepare release output tree')) {
-    Remove-Item -LiteralPath $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $stagingInstallPrefix -Recurse -Force -ErrorAction SilentlyContinue
+if (-not $WhatIfPreference -and (Test-Path -LiteralPath $releaseRoot)) {
+    throw "Release output directory '$releaseRoot' already exists. Refusing to replace an existing release unit."
+}
+
+try {
+if ($script:DearStoryCmdlet.ShouldProcess($stagingReleaseRoot, 'Prepare release staging tree')) {
     New-Item -ItemType Directory -Force -Path $dotnetReleaseDirectory, $cppReleaseDirectory | Out-Null
+    Remove-Item -LiteralPath $stagingInstallPrefix -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Write-Output ("Copy-Item -Path {0} -Destination {1} -Force" -f (Join-Path $repositoryRoot 'artifacts\packages\dotnet\*.nupkg'), $dotnetReleaseDirectory)
@@ -83,7 +96,7 @@ if ($script:DearStoryCmdlet.ShouldProcess($dotnetReleaseDirectory, 'Copy public 
     Copy-Item -Path (Join-Path $repositoryRoot 'artifacts\packages\dotnet\*.nupkg') -Destination $dotnetReleaseDirectory -Force
 }
 
-Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', '.\build\windows-msvc-debug', '--config', $Configuration, '--prefix', '.\artifacts\install\dearstory-release')
+Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', '.\build\windows-msvc-debug', '--config', $Configuration, '--prefix', $stagingInstallPrefix)
 Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\assert-public-package-boundaries.ps1', '-CppInstallPrefix', $stagingInstallPrefix)
 Write-Output ("Compress-Archive -Path {0}\* -DestinationPath {1} -Force" -f $stagingInstallPrefix, $cppArchivePath)
 if ($script:DearStoryCmdlet.ShouldProcess($cppArchivePath, 'Create public C++ release archive')) {
@@ -91,10 +104,10 @@ if ($script:DearStoryCmdlet.ShouldProcess($cppArchivePath, 'Create public C++ re
 }
 
 if ($script:DearStoryCmdlet.ShouldProcess($checksumPath, 'Write SHA256SUMS')) {
-    $checksumLines = Get-ChildItem -Path $releaseRoot -File -Recurse |
+    $checksumLines = Get-ChildItem -Path $stagingReleaseRoot -File -Recurse |
         Sort-Object FullName |
         ForEach-Object {
-            $relativePath = [System.IO.Path]::GetRelativePath($releaseRoot, $_.FullName).Replace('\', '/')
+            $relativePath = [System.IO.Path]::GetRelativePath($stagingReleaseRoot, $_.FullName).Replace('\', '/')
             $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant()
             '{0} *{1}' -f $hash, $relativePath
         }
@@ -115,7 +128,27 @@ Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @(
     '-ReleaseMode',
     $ReleaseMode,
     '-ArtifactsRoot',
-    $releaseRoot,
+    $stagingReleaseRoot,
     '-OutputPath',
     $manifestPath
 )
+
+if (-not $WhatIfPreference -and (Test-Path -LiteralPath $releaseRoot)) {
+    throw "Release output directory '$releaseRoot' already exists. Refusing to replace an existing release unit."
+}
+
+Write-Output ("Move-Item -LiteralPath {0} -Destination {1}" -f $stagingReleaseRoot, $releaseRoot)
+if ($script:DearStoryCmdlet.ShouldProcess($releaseRoot, 'Promote completed release unit')) {
+    Move-Item -LiteralPath $stagingReleaseRoot -Destination $releaseRoot
+    $releasePromoted = $true
+}
+}
+finally {
+    if (-not $releasePromoted -and (Test-Path -LiteralPath $stagingReleaseRoot)) {
+        Remove-Item -LiteralPath $stagingReleaseRoot -Recurse -Force
+    }
+
+    if (Test-Path -LiteralPath $stagingInstallPrefix) {
+        Remove-Item -LiteralPath $stagingInstallPrefix -Recurse -Force
+    }
+}
