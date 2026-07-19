@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Resolve release context
         id: context
@@ -47,14 +47,7 @@ jobs:
           MANUAL_REF: ${{ inputs.ref }}
           MANUAL_VERSION: ${{ inputs.version }}
         run: |
-          $versionInfo = & .\eng\read-version.ps1
-          $tagName = $versionInfo.Tag
-
           if ($env:EVENT_NAME -eq 'workflow_dispatch') {
-            if ($env:MANUAL_VERSION -ne $versionInfo.Version) {
-              throw "Manual release version '$env:MANUAL_VERSION' does not match repository version '$($versionInfo.Version)'."
-            }
-
             git fetch origin main
             if ($LASTEXITCODE -ne 0) {
               throw "Manual release ancestry refresh from origin/main failed."
@@ -72,6 +65,19 @@ jobs:
               throw "Manual release ref '$env:MANUAL_REF' is not reachable from origin/main."
             }
 
+            $versionFile = Join-Path $env:RUNNER_TEMP "release-version-$sourceCommit.json"
+            $versionJson = git show "$sourceCommit`:eng/version.json"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ref '$env:MANUAL_REF' does not contain eng/version.json."
+            }
+
+            Set-Content -LiteralPath $versionFile -Value $versionJson -NoNewline
+            $versionInfo = & .\eng\read-version.ps1 -Path $versionFile
+            $tagName = $versionInfo.Tag
+            if ($env:MANUAL_VERSION -ne $versionInfo.Version) {
+              throw "Manual release version '$env:MANUAL_VERSION' does not match repository version '$($versionInfo.Version)'."
+            }
+
             "version=$($versionInfo.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "tag_name=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "source_ref=$env:MANUAL_REF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -80,6 +86,9 @@ jobs:
             "release_mode=Manual" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit 0
           }
+
+          $versionInfo = & .\eng\read-version.ps1
+          $tagName = $versionInfo.Tag
 
           if ($env:GITHUB_REF_NAME -ne $tagName) {
             throw "Tag '$env:GITHUB_REF_NAME' does not match repository version tag '$tagName'."

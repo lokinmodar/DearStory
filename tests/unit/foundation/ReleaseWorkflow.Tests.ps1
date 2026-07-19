@@ -171,6 +171,24 @@ Describe 'Release workflow' {
         $contextScript | Should Not Match '\$\{\{\s*inputs\.(ref|version)\s*\}\}'
     }
 
+    It 'validates invalid manual refs in PowerShell after a safe checkout' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $validateCheckout = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Checkout selected ref.*?(?=^\s{6}- name: Resolve release context)'
+        ).Value
+        $contextScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Resolve release context.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{2}\S)'
+        ).Groups['script'].Value
+
+        $validateCheckout | Should Not BeNullOrEmpty
+        $validateCheckout | Should Match 'ref:\s*\$\{\{\s*github\.sha\s*\}\}'
+        $validateCheckout | Should Not Match '\$\{\{\s*inputs\.ref\s*\}\}'
+        $contextScript | Should Match '\$sourceCommitOutput = git rev-parse --verify --end-of-options "\$env:MANUAL_REF\^\{commit\}"'
+        $contextScript | Should Match 'Manual release ref .+ could not be resolved to a commit\.'
+    }
+
     It 'validates a non-tip manual release ancestor against the complete main history' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $contextScript = [regex]::Match(
