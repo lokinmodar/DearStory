@@ -90,6 +90,10 @@ jobs:
     needs: validate
     runs-on: windows-2022
     env:
+      EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+      RELEASE_MODE: ${{ needs.validate.outputs.release_mode }}
+      SOURCE_COMMIT: ${{ needs.validate.outputs.source_commit }}
+      SOURCE_REF: ${{ needs.validate.outputs.source_ref }}
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.cache\vcpkg\archives
       NUGET_PACKAGES: ${{ github.workspace }}\.cache\nuget\packages
@@ -128,10 +132,10 @@ jobs:
         shell: pwsh
         run: |
           pwsh -NoProfile -File .\eng\release.ps1 `
-            -ReleaseMode ${{ needs.validate.outputs.release_mode }} `
-            -ExpectedVersion ${{ needs.validate.outputs.version }} `
-            -SourceRef "${{ needs.validate.outputs.source_ref }}" `
-            -SourceCommit "${{ needs.validate.outputs.source_commit }}"
+            -ReleaseMode $env:RELEASE_MODE `
+            -ExpectedVersion $env:EXPECTED_VERSION `
+            -SourceRef $env:SOURCE_REF `
+            -SourceCommit $env:SOURCE_COMMIT
 
       - name: Upload release unit
         uses: actions/upload-artifact@v4

@@ -28,6 +28,25 @@ Describe 'Release workflow' {
         $contextScript | Should Not Match '\$\{\{\s*inputs\.(ref|version)\s*\}\}'
     }
 
+    It 'passes validated build inputs to PowerShell through the environment' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $workflow | Should Match 'RELEASE_MODE:\s*\$\{\{\s*needs\.validate\.outputs\.release_mode\s*\}\}'
+        $workflow | Should Match 'EXPECTED_VERSION:\s*\$\{\{\s*needs\.validate\.outputs\.version\s*\}\}'
+        $workflow | Should Match 'SOURCE_REF:\s*\$\{\{\s*needs\.validate\.outputs\.source_ref\s*\}\}'
+        $workflow | Should Match 'SOURCE_COMMIT:\s*\$\{\{\s*needs\.validate\.outputs\.source_commit\s*\}\}'
+
+        $buildScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Build release unit.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{6}- name: Upload release unit)'
+        ).Groups['script'].Value
+        $buildScript | Should Not BeNullOrEmpty
+        $buildScript | Should Match '-ReleaseMode \$env:RELEASE_MODE'
+        $buildScript | Should Match '-ExpectedVersion \$env:EXPECTED_VERSION'
+        $buildScript | Should Match '-SourceRef \$env:SOURCE_REF'
+        $buildScript | Should Match '-SourceCommit \$env:SOURCE_COMMIT'
+        $buildScript | Should Not Match '\$\{\{\s*needs\.validate\.outputs\.'
+    }
+
     It 'keeps an existing GitHub release draft and fails every release command immediately' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'environment:\s*release'
