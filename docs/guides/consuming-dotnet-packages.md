@@ -26,8 +26,20 @@ $env:DearStoryLocalFeed = (Resolve-Path .\artifacts\packages\local-feed).Path
 dotnet test .\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj -c Release
 ```
 
+`eng\pack.ps1` writes the publishable `.nupkg` files to
+`artifacts\packages\dotnet` and copies the same packages to
+`artifacts\packages\local-feed`. The smoke project resolves the DearStory
+packages from the local-feed path supplied by `DearStoryLocalFeed` (while
+NuGet remains available for third-party dependencies), proving that consumers
+use the packaged public assemblies rather than repository project references.
+
 Consumers that use the local feed should append it to their restore sources:
 
 ```xml
 <RestoreSources>$(RestoreSources);$(DearStoryLocalFeed)</RestoreSources>
 ```
+
+For the repository's complete Release validation, use
+`pwsh -NoProfile -File .\eng\test.ps1 -Configuration Release` after packing.
+That command includes this smoke consumer as well as the installed C++ package
+consumer.

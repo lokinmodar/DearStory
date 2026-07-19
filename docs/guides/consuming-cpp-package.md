@@ -6,6 +6,12 @@ Install DearStory from a configured build tree:
 cmake --install .\build\windows-msvc-debug --config Release --prefix .\artifacts\install\dearstory
 ```
 
+The install prefix contains the exported `DearStoryConfig.cmake` package and
+the public `DearStory::ProtocolCpp`, `DearStory::CoreCpp`, and
+`DearStory::SdkCpp` targets. It is the C++ consumer artifact; the repository's
+runner, host, capture, docs, and Windows transport targets are not part of this
+package surface.
+
 Configure a CMake consumer with the install prefix:
 
 ```powershell
@@ -30,3 +36,8 @@ find_package(DearStory CONFIG REQUIRED)
 
 target_link_libraries(my_app PRIVATE DearStory::SdkCpp)
 ```
+
+For the canonical end-to-end proof, run
+`pwsh -NoProfile -File .\eng\test.ps1 -Configuration Release`. It installs the
+configured Release build to `artifacts\install\dearstory`, sets an absolute
+`CMAKE_PREFIX_PATH`, builds the external consumer, and runs its tests.

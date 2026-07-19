@@ -82,6 +82,25 @@ No implementation is considered complete until all of the following are green fo
 - canonical verification through `eng/build.ps1` and `eng/test.ps1`;
 - `git diff --check`.
 
+## Package and release documentation
+
+Changes to the public library surface must keep the package documentation in
+sync with the implementation. The supported public products are the .NET
+packages `DearStory.Protocol`, `DearStory.Core`, `DearStory.Sdk`, and
+`DearStory.Sdk.Generator`, and the C++ targets `DearStory::ProtocolCpp`,
+`DearStory::CoreCpp`, and `DearStory::SdkCpp`. The Windows-first runner,
+catalog, hosts, capture, docs, and transport layers are internal products and
+must not become package-consumer prerequisites without an explicit product
+decision.
+
+`docs/guides/consuming-dotnet-packages.md` and
+`docs/guides/consuming-cpp-package.md` are the consumer contracts. Their
+commands must match `eng/pack.ps1`, `eng/test.ps1`, and the installed CMake
+package layout. `docs/guides/releasing-packages.md` is the maintainer contract
+for versioning, publication, and the release verification sequence. Update
+these guides whenever package identities, artifact paths, exported targets, or
+release gates change.
+
 ## Review expectations
 
 Code review is expected to reject changes that:
