@@ -234,13 +234,11 @@ jobs:
             throw "GitHub release '$tag' already exists and is not a draft."
           }
 
-          if ($releaseExists) {
-            # Once a release tag exists, its tag ref is the authoritative target commit.
-            $releaseTargetApiUri = "https://api.github.com/repos/$env:GH_REPO/commits/$tag"
-            $releaseTargetCommit = (Invoke-RestMethod -Uri $releaseTargetApiUri -Headers $releaseHeaders).sha
-            if ($releaseTargetCommit -ne $sourceCommit) {
-              throw "GitHub release '$tag' targets commit '$releaseTargetCommit', not validated commit '$sourceCommit'."
-            }
+          # The tag ref is authoritative whether the release was found or just created.
+          $releaseTargetApiUri = "https://api.github.com/repos/$env:GH_REPO/commits/$tag"
+          $releaseTargetCommit = (Invoke-RestMethod -Uri $releaseTargetApiUri -Headers $releaseHeaders).sha
+          if ($releaseTargetCommit -ne $sourceCommit) {
+            throw "GitHub release '$tag' targets commit '$releaseTargetCommit', not validated commit '$sourceCommit'."
           }
 
           $publishedPackages = @(Get-PublishedPackages)

@@ -49,21 +49,26 @@ Describe 'Release workflow' {
         }
     }
 
-    It 'rejects an existing release whose tag targets another commit before package publication' {
+    It 'verifies the release tag target unconditionally before package publication' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'https://api\.github\.com/repos/\$env:GH_REPO/releases/tags/\$tag'
         $workflow | Should Match 'https://api\.github\.com/repos/\$env:GH_REPO/commits/\$tag'
         $workflow | Should Match 'if \(\$releaseTargetCommit -ne \$sourceCommit\)\s*\{\s*throw'
 
-        $existingReleaseCheck = $workflow.IndexOf('if ($releaseExists)')
-        $targetResolution = $workflow.IndexOf('$releaseTargetCommit =')
-        $targetComparison = $workflow.IndexOf('if ($releaseTargetCommit -ne $sourceCommit)')
-        $packagePublication = $workflow.IndexOf('$publishedPackages = @(Get-PublishedPackages)')
-        $existingReleaseCheck | Should BeGreaterThan -1
+        $publishScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+        ).Groups['script'].Value
+        $draftCheck = $publishScript.IndexOf('if (-not $release.isDraft)')
+        $targetResolution = $publishScript.IndexOf('$releaseTargetCommit =')
+        $targetComparison = $publishScript.IndexOf('if ($releaseTargetCommit -ne $sourceCommit)')
+        $packagePublication = $publishScript.IndexOf('$publishedPackages = @(Get-PublishedPackages)')
+        $draftCheck | Should BeGreaterThan -1
         $targetResolution | Should BeGreaterThan -1
         $targetComparison | Should BeGreaterThan -1
         $packagePublication | Should BeGreaterThan -1
-        $existingReleaseCheck | Should BeLessThan $targetResolution
+        $publishScript | Should Not Match '(?s)if \(\$releaseExists\)\s*\{.*?\$releaseTargetCommit'
+        $draftCheck | Should BeLessThan $targetResolution
         $targetResolution | Should BeLessThan $targetComparison
         $targetComparison | Should BeLessThan $packagePublication
     }
