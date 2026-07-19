@@ -1,0 +1,62 @@
+name: Feature request
+description: Propose an improvement to DearStory library surfaces, tooling, docs, or workflows.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for concrete proposals.
+
+        Good requests explain:
+        - the problem being solved
+        - who benefits
+        - constraints or tradeoffs
+  - type: dropdown
+    id: area
+    attributes:
+      label: Target area
+      description: Choose the primary area for the proposal.
+      options:
+        - C++ package consumption
+        - .NET package consumption
+        - SDK / generator behavior
+        - Windows runner / host / catalog
+        - Docs / release guidance
+        - CI / build / test scripts
+        - Cross-platform groundwork
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What concrete pain point or limitation are you trying to solve?
+      placeholder: The current behavior makes it hard to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the change you want to see.
+      placeholder: I would like DearStory to...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention other approaches you considered, if any.
+    validations:
+      required: false
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected impact
+      description: Who benefits, and how would success look?
+    validations:
+      required: false
+
