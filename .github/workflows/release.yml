@@ -34,7 +34,7 @@ jobs:
       release_mode: ${{ steps.context.outputs.release_mode }}
     steps:
       - name: Checkout selected ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
@@ -99,13 +99,13 @@ jobs:
       NUGET_PACKAGES: ${{ github.workspace }}\.cache\nuget\packages
     steps:
       - name: Checkout validated commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
           ref: ${{ needs.validate.outputs.checkout_ref }}
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
         with:
           global-json-file: global.json
           cache: true
@@ -138,7 +138,7 @@ jobs:
             -SourceCommit $env:SOURCE_COMMIT
 
       - name: Upload release unit
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: dearstory-release-unit-${{ needs.validate.outputs.version }}
           path: artifacts/releases/${{ needs.validate.outputs.version }}
@@ -152,7 +152,7 @@ jobs:
       contents: write
     steps:
       - name: Download release unit
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: dearstory-release-unit-${{ needs.validate.outputs.version }}
           path: artifacts/releases/${{ needs.validate.outputs.version }}
@@ -314,16 +314,22 @@ jobs:
           }
 
           $publishedPackages = @(Get-PublishedPackages)
+          if ($publishedPackages.Count -gt 0 -and
+              $publishedPackages.Count -lt $packageIds.Count) {
+            throw "Partial NuGet publication already exists for version ${version}: $($publishedPackages -join ', '). The draft release will not resume package publication."
+          }
+
           foreach ($packageId in $publishedPackages) {
             Assert-PublishedPackageMatchesReleaseUnit -PackageId $packageId
           }
 
-          $missingPackages = @($packageIds | Where-Object { $publishedPackages -notcontains $_ })
-          foreach ($packageId in $missingPackages) {
-            $packagePath = Join-Path $releaseRoot "dotnet\$packageId.$version.nupkg"
-            dotnet nuget push $packagePath --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
-            if ($LASTEXITCODE -ne 0) {
-              throw "NuGet publication failed for '$packageId'."
+          if ($publishedPackages.Count -eq 0) {
+            foreach ($packageId in $packageIds) {
+              $packagePath = Join-Path $releaseRoot "dotnet\$packageId.$version.nupkg"
+              dotnet nuget push $packagePath --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+              if ($LASTEXITCODE -ne 0) {
+                throw "NuGet publication failed for '$packageId'."
+              }
             }
           }
 

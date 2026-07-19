@@ -55,8 +55,9 @@ try {
     throw 'Expected release-manifest.json generation to reject an unexpected public package set.'
 }
 catch {
-    if ($_.Exception.Message -eq 'Expected release-manifest.json generation to reject an unexpected public package set.') {
-        throw
+    $expectedMessageFragment = 'Expected the canonical public .NET package set'
+    if ($_.Exception.Message -notlike "*$expectedMessageFragment*") {
+        throw "Expected manifest validation message containing '$expectedMessageFragment', got: $($_.Exception.Message)"
     }
 }
 finally {
@@ -71,8 +72,9 @@ try {
     throw 'Expected release-manifest.json generation to reject multiple public C++ archives.'
 }
 catch {
-    if ($_.Exception.Message -eq 'Expected release-manifest.json generation to reject multiple public C++ archives.') {
-        throw
+    $expectedMessageFragment = 'Expected exactly one public C++ archive'
+    if ($_.Exception.Message -notlike "*$expectedMessageFragment*") {
+        throw "Expected manifest validation message containing '$expectedMessageFragment', got: $($_.Exception.Message)"
     }
 }
 finally {
@@ -90,8 +92,12 @@ if ($cmakeInstallLines.Count -ne 1 -or $cmakeInstallLines[0].Line -notmatch 'dea
     throw 'Expected release WhatIf output to install C++ artifacts to a unique staging prefix.'
 }
 
-if (@($releaseLines | Select-String -SimpleMatch 'Compress-Archive').Count -ne 1) {
-    throw 'Expected release WhatIf output to include the public C++ archive creation exactly once.'
+if (@($releaseLines | Select-String -SimpleMatch 'New-DearStoryDeterministicArchive').Count -ne 1) {
+    throw 'Expected release WhatIf output to include deterministic public C++ archive creation exactly once.'
+}
+
+if (@($releaseLines | Select-String -SimpleMatch 'Compress-Archive').Count -ne 0) {
+    throw 'Expected release WhatIf output not to use timestamp-bearing Compress-Archive output.'
 }
 
 $customOutputRoot = Join-Path $repositoryRoot '.artifacts\custom-release-output'
@@ -211,6 +217,96 @@ if (@($stagingReleaseLines | Select-String -SimpleMatch '[System.IO.Directory]::
 
 if (@($stagingReleaseLines | Select-String -SimpleMatch 'Move-Item -LiteralPath').Count -ne 0) {
     throw 'Expected release promotion not to use Move-Item directory destination semantics.'
+}
+
+$deterministicRepositoryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-determinism-test-{0}" -f [guid]::NewGuid().ToString('N'))
+$deterministicToolRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-tools-{0}" -f [guid]::NewGuid().ToString('N'))
+$originalPath = $env:PATH
+try {
+    & git clone --quiet $repositoryRoot $deterministicRepositoryRoot
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Unable to create the isolated DearStory deterministic-release repository.'
+    }
+
+    Copy-Item -LiteralPath $releaseScript -Destination (Join-Path $deterministicRepositoryRoot 'eng\release.ps1') -Force
+    @'
+[CmdletBinding()]
+param([string]$Configuration = 'Release')
+
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$version = (& (Join-Path $PSScriptRoot 'read-version.ps1')).Version
+$packageDirectory = Join-Path $repositoryRoot 'artifacts\packages\dotnet'
+Remove-Item -LiteralPath $packageDirectory -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $packageDirectory | Out-Null
+foreach ($packageId in @('DearStory.Protocol', 'DearStory.Core', 'DearStory.Sdk', 'DearStory.Sdk.Generator')) {
+    Set-Content -LiteralPath (Join-Path $packageDirectory "$packageId.$version.nupkg") -Value $packageId -NoNewline
+}
+'@ | Set-Content -LiteralPath (Join-Path $deterministicRepositoryRoot 'eng\pack.ps1')
+
+    @'
+[CmdletBinding()]
+param([Parameter(Mandatory)][string]$CppInstallPrefix)
+
+if (-not (Test-Path -LiteralPath $CppInstallPrefix -PathType Container)) {
+    throw "Expected fixture C++ install prefix '$CppInstallPrefix'."
+}
+'@ | Set-Content -LiteralPath (Join-Path $deterministicRepositoryRoot 'eng\assert-public-package-boundaries.ps1')
+
+    New-Item -ItemType Directory -Force -Path $deterministicToolRoot | Out-Null
+    @'
+@echo off
+setlocal
+set "prefix="
+:parse
+if "%~1"=="" goto install
+if /I "%~1"=="--prefix" set "prefix=%~2"
+shift
+goto parse
+:install
+if "%prefix%"=="" exit /b 2
+mkdir "%prefix%\include\dearstory" >nul 2>nul
+mkdir "%prefix%\lib\cmake\DearStory" >nul 2>nul
+> "%prefix%\include\dearstory\fixture.hpp" echo // deterministic fixture
+> "%prefix%\lib\cmake\DearStory\DearStoryConfig.cmake" echo # deterministic fixture
+exit /b 0
+'@ | Set-Content -LiteralPath (Join-Path $deterministicToolRoot 'cmake.cmd') -Encoding ascii
+
+    $env:PATH = "$deterministicToolRoot;$originalPath"
+    $deterministicCommit = (& git -C $deterministicRepositoryRoot rev-parse HEAD).Trim()
+    $firstOutputRoot = Join-Path $deterministicRepositoryRoot 'first-release'
+    $secondOutputRoot = Join-Path $deterministicRepositoryRoot 'second-release'
+
+    $firstReleaseOutput = & pwsh -NoProfile -File (Join-Path $deterministicRepositoryRoot 'eng\release.ps1') -ReleaseMode Local -ExpectedVersion $versionInfo.Version -SourceRef 'refs/heads/test' -SourceCommit $deterministicCommit -OutputRoot $firstOutputRoot -SkipBuild -SkipTest 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Expected first deterministic release fixture to succeed. Output: $($firstReleaseOutput -join [Environment]::NewLine)"
+    }
+
+    Start-Sleep -Seconds 3
+
+    $secondReleaseOutput = & pwsh -NoProfile -File (Join-Path $deterministicRepositoryRoot 'eng\release.ps1') -ReleaseMode Local -ExpectedVersion $versionInfo.Version -SourceRef 'refs/heads/test' -SourceCommit $deterministicCommit -OutputRoot $secondOutputRoot -SkipBuild -SkipTest 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Expected second deterministic release fixture to succeed. Output: $($secondReleaseOutput -join [Environment]::NewLine)"
+    }
+
+    $archiveName = "DearStory-cpp-$($versionInfo.Version)-windows-msvc-x64.zip"
+    $firstReleaseRoot = Join-Path $firstOutputRoot $versionInfo.Version
+    $secondReleaseRoot = Join-Path $secondOutputRoot $versionInfo.Version
+    $firstArchiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $firstReleaseRoot "cpp\$archiveName")).Hash
+    $secondArchiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $secondReleaseRoot "cpp\$archiveName")).Hash
+    if ($firstArchiveHash -ne $secondArchiveHash) {
+        throw "Expected same-commit C++ release archives to be byte-for-byte deterministic, got '$firstArchiveHash' and '$secondArchiveHash'."
+    }
+
+    $firstChecksumsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $firstReleaseRoot 'SHA256SUMS')).Hash
+    $secondChecksumsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $secondReleaseRoot 'SHA256SUMS')).Hash
+    if ($firstChecksumsHash -ne $secondChecksumsHash) {
+        throw "Expected same-commit SHA256SUMS files to be byte-for-byte deterministic, got '$firstChecksumsHash' and '$secondChecksumsHash'."
+    }
+}
+finally {
+    $env:PATH = $originalPath
+    Remove-Item -LiteralPath $deterministicToolRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $deterministicRepositoryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 }
 finally {

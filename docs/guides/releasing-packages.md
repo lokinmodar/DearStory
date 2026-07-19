@@ -12,6 +12,8 @@ do not maintain a separate CMake version for the public release.
 ## Canonical version source
 
 The public release version is declared only in `eng/version.json`.
+The root `vcpkg.json` is a dependency manifest and must not declare a separate
+product version.
 
 The public product boundary is intentionally small:
 
@@ -71,7 +73,10 @@ then the public C++ archive, `SHA256SUMS`, and `release-manifest.json` are
 uploaded. Only after all coordinated publication steps succeed does the
 workflow change the GitHub Release from `draft` to published. If any step
 fails, the GitHub Release remains in `draft` rather than presenting a partial
-public release.
+public release. A rerun does not resume a partial NuGet publication: if NuGet
+already contains only a subset of the four packages, the workflow fails before
+pushing any additional package and leaves the GitHub Release in `draft` for
+manual resolution.
 
 ## .NET package publishing
 

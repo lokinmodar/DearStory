@@ -1,6 +1,5 @@
 {
   "name": "dearstory",
-  "version-semver": "0.1.0",
   "dependencies": [
     {
       "name": "catch2",

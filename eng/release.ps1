@@ -70,6 +70,58 @@ function Resolve-DearStoryCommit {
     $resolvedCommit.Trim()
 }
 
+function New-DearStoryDeterministicArchive {
+    param(
+        [Parameter(Mandatory)][string]$SourceRoot,
+        [Parameter(Mandatory)][string]$DestinationPath
+    )
+
+    $sourceRootPath = [System.IO.Path]::GetFullPath($SourceRoot)
+    $relativePaths = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in Get-ChildItem -LiteralPath $sourceRootPath -File -Recurse) {
+        $relativePaths.Add([System.IO.Path]::GetRelativePath($sourceRootPath, $file.FullName).Replace('\', '/'))
+    }
+    $relativePaths.Sort([System.StringComparer]::Ordinal)
+
+    $archiveTimestamp = [System.DateTimeOffset]::new(1980, 1, 1, 0, 0, 0, [System.TimeSpan]::Zero)
+    $archiveStream = [System.IO.File]::Open(
+        $DestinationPath,
+        [System.IO.FileMode]::CreateNew,
+        [System.IO.FileAccess]::Write,
+        [System.IO.FileShare]::None
+    )
+    try {
+        $archive = [System.IO.Compression.ZipArchive]::new(
+            $archiveStream,
+            [System.IO.Compression.ZipArchiveMode]::Create,
+            $true,
+            [System.Text.Encoding]::UTF8
+        )
+        try {
+            foreach ($relativePath in $relativePaths) {
+                $entry = $archive.CreateEntry($relativePath, [System.IO.Compression.CompressionLevel]::Optimal)
+                $entry.LastWriteTime = $archiveTimestamp
+                $sourcePath = Join-Path $sourceRootPath $relativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+                $sourceStream = [System.IO.File]::OpenRead($sourcePath)
+                $entryStream = $entry.Open()
+                try {
+                    $sourceStream.CopyTo($entryStream)
+                }
+                finally {
+                    $entryStream.Dispose()
+                    $sourceStream.Dispose()
+                }
+            }
+        }
+        finally {
+            $archive.Dispose()
+        }
+    }
+    finally {
+        $archiveStream.Dispose()
+    }
+}
+
 $versionInfo = & (Join-Path $PSScriptRoot 'read-version.ps1')
 if ($ExpectedVersion -and $ExpectedVersion -ne $versionInfo.Version) {
     throw "Expected version '$ExpectedVersion' does not match repository version '$($versionInfo.Version)'."
@@ -155,21 +207,27 @@ if ($script:DearStoryCmdlet.ShouldProcess($dotnetReleaseDirectory, 'Copy public 
 
 Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', $cmakeBuildDirectory, '--config', $Configuration, '--prefix', $stagingInstallPrefix)
 Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', $packageBoundaryScript, '-CppInstallPrefix', $stagingInstallPrefix)
-Write-Output ("Compress-Archive -Path {0}\* -DestinationPath {1} -Force" -f $stagingInstallPrefix, $cppArchivePath)
+Write-Output ("New-DearStoryDeterministicArchive -SourceRoot {0} -DestinationPath {1}" -f $stagingInstallPrefix, $cppArchivePath)
 if ($script:DearStoryCmdlet.ShouldProcess($cppArchivePath, 'Create public C++ release archive')) {
-    Compress-Archive -Path (Join-Path $stagingInstallPrefix '*') -DestinationPath $cppArchivePath -Force
+    New-DearStoryDeterministicArchive -SourceRoot $stagingInstallPrefix -DestinationPath $cppArchivePath
 }
 
 if ($script:DearStoryCmdlet.ShouldProcess($checksumPath, 'Write SHA256SUMS')) {
-    $checksumLines = Get-ChildItem -Path $stagingReleaseRoot -File -Recurse |
-        Sort-Object FullName |
-        ForEach-Object {
-            $relativePath = [System.IO.Path]::GetRelativePath($stagingReleaseRoot, $_.FullName).Replace('\', '/')
-            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant()
+    $checksumRelativePaths = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in Get-ChildItem -LiteralPath $stagingReleaseRoot -File -Recurse) {
+        $checksumRelativePaths.Add([System.IO.Path]::GetRelativePath($stagingReleaseRoot, $file.FullName).Replace('\', '/'))
+    }
+    $checksumRelativePaths.Sort([System.StringComparer]::Ordinal)
+
+    $checksumLines = @(
+        foreach ($relativePath in $checksumRelativePaths) {
+            $artifactPath = Join-Path $stagingReleaseRoot $relativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $artifactPath).Hash.ToLowerInvariant()
             '{0} *{1}' -f $hash, $relativePath
         }
+    )
 
-    Set-Content -LiteralPath $checksumPath -Value $checksumLines
+    [System.IO.File]::WriteAllLines($checksumPath, $checksumLines, [System.Text.UTF8Encoding]::new($false))
 }
 
 Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @(

@@ -5,6 +5,7 @@ $versionJsonPath = Join-Path $repositoryRoot 'eng\version.json'
 $readVersionScript = Join-Path $repositoryRoot 'eng\read-version.ps1'
 $directoryBuildProps = Join-Path $repositoryRoot 'Directory.Build.props'
 $cmakeLists = Join-Path $repositoryRoot 'CMakeLists.txt'
+$vcpkgManifestPath = Join-Path $repositoryRoot 'vcpkg.json'
 
 if (-not (Test-Path -LiteralPath $versionJsonPath)) {
     throw "Expected canonical version file '$versionJsonPath' to exist."
@@ -14,9 +15,16 @@ if (-not (Test-Path -LiteralPath $readVersionScript)) {
     throw "Expected version reader '$readVersionScript' to exist."
 }
 
+$canonicalVersion = [string](Get-Content -Raw -LiteralPath $versionJsonPath | ConvertFrom-Json).version
 $versionInfo = & $readVersionScript
-if ($versionInfo.Version -ne '0.1.0' -or $versionInfo.Tag -ne 'v0.1.0' -or -not $versionInfo.IsStableSemVer) {
-    throw 'Expected read-version.ps1 to expose Version, Tag, and IsStableSemVer for DearStory 0.1.0.'
+if ($versionInfo.Version -ne $canonicalVersion -or $versionInfo.Tag -ne "v$canonicalVersion" -or -not $versionInfo.IsStableSemVer) {
+    throw 'Expected read-version.ps1 to derive Version, Tag, and IsStableSemVer from eng/version.json.'
+}
+
+$vcpkgManifest = Get-Content -Raw -LiteralPath $vcpkgManifestPath | ConvertFrom-Json
+$vcpkgVersionProperties = @($vcpkgManifest.PSObject.Properties.Name | Where-Object { $_ -match '^version' })
+if ($vcpkgVersionProperties.Count -ne 0) {
+    throw "vcpkg.json must not declare a repository version; eng/version.json is canonical. Found: $($vcpkgVersionProperties -join ', ')."
 }
 
 $directoryBuildPropsContent = Get-Content -Raw $directoryBuildProps

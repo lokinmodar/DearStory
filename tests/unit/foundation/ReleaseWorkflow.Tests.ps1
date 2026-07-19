@@ -9,6 +9,22 @@ Describe 'Release workflow' {
         $workflow | Should Match 'version:'
     }
 
+    It 'pins every release action to its reviewed commit SHA' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $actionReferences = @([regex]::Matches($workflow, '(?m)^\s*uses:\s*(?<reference>\S+)\s*$') |
+            ForEach-Object { $_.Groups['reference'].Value })
+        $expectedActionReferences = @(
+            'actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0',
+            'actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0',
+            'actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1',
+            'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+            'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093'
+        )
+
+        $actionReferences.Count | Should Be $expectedActionReferences.Count
+        ($actionReferences -join "`n") | Should Be ($expectedActionReferences -join "`n")
+    }
+
     It 'uses the canonical tag name as the release concurrency key for every trigger' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'group:\s*dearstory-release-\$\{\{\s*github\.event_name\s*==\s*''workflow_dispatch''\s*&&\s*format\(''v\{0\}'',\s*inputs\.version\)\s*\|\|\s*github\.ref_name\s*\}\}'
@@ -97,13 +113,29 @@ Describe 'Release workflow' {
         $targetComparison | Should BeLessThan $packagePublication
     }
 
-    It 'resumes partial NuGet publication and verifies the product unit before finalization' {
+    It 'fails fast on partial existing NuGet publication while retaining the draft release' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
-        $workflow | Should Not Match 'Partial NuGet publication already exists'
-        $workflow | Should Match '\$missingPackages\s*=\s*@\(\$packageIds \| Where-Object \{ \$publishedPackages -notcontains \$_ \}\)'
-        $workflow | Should Match 'foreach \(\$packageId in \$missingPackages\)'
+        $publishScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+        ).Groups['script'].Value
+
+        $publishScript | Should Match '(?s)if \(\$publishedPackages\.Count -gt 0 -and\s*\$publishedPackages\.Count -lt \$packageIds\.Count\)\s*\{\s*throw "Partial NuGet publication already exists'
+        $publishScript | Should Not Match '\$missingPackages\s*='
+        $publishScript | Should Match 'if \(\$publishedPackages\.Count -eq 0\)'
         $workflow | Should Match '(?s)dotnet nuget push [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
-        $workflow | Should Match '(?s)\$publishedPackages\s*=\s*@\(Get-PublishedPackages.*?if \(\$publishedPackages\.Count -ne \$packageIds\.Count\)\s*\{\s*throw.*?gh release upload'
+
+        $draftCheck = $publishScript.IndexOf('if (-not $release.isDraft)')
+        $publishedLookup = $publishScript.IndexOf('$publishedPackages = @(Get-PublishedPackages)')
+        $partialPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -gt 0 -and')
+        $initialContentVerification = $publishScript.IndexOf('foreach ($packageId in $publishedPackages)')
+        $packagePublication = $publishScript.IndexOf('dotnet nuget push')
+
+        $draftCheck | Should BeGreaterThan -1
+        $publishedLookup | Should BeGreaterThan $draftCheck
+        $partialPublicationGate | Should BeGreaterThan $publishedLookup
+        $initialContentVerification | Should BeGreaterThan $partialPublicationGate
+        $packagePublication | Should BeGreaterThan $partialPublicationGate
     }
 
     It 'verifies published NuGet package contents against the coordinated release unit' {
@@ -129,16 +161,18 @@ Describe 'Release workflow' {
         $publishScript | Should Match '(?s)foreach \(\$packageId in \$packageIds\)\s*\{\s*Assert-PublishedPackageMatchesReleaseUnit -PackageId \$packageId\s*\}'
 
         $initialPublishedLookup = $publishScript.IndexOf('$publishedPackages = @(Get-PublishedPackages)')
+        $partialPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -gt 0 -and')
         $initialContentVerification = $publishScript.IndexOf('foreach ($packageId in $publishedPackages)')
-        $missingPackageResolution = $publishScript.IndexOf('$missingPackages =')
+        $emptySetPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -eq 0)')
         $coordinatedPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -ne $packageIds.Count)')
         $finalContentVerification = $publishScript.IndexOf('foreach ($packageId in $packageIds)', $coordinatedPublicationGate)
         $assetUpload = $publishScript.IndexOf('gh release upload')
 
         $initialPublishedLookup | Should BeGreaterThan -1
-        $initialContentVerification | Should BeGreaterThan $initialPublishedLookup
-        $initialContentVerification | Should BeLessThan $missingPackageResolution
-        $coordinatedPublicationGate | Should BeGreaterThan $missingPackageResolution
+        $partialPublicationGate | Should BeGreaterThan $initialPublishedLookup
+        $initialContentVerification | Should BeGreaterThan $partialPublicationGate
+        $emptySetPublicationGate | Should BeGreaterThan $initialContentVerification
+        $coordinatedPublicationGate | Should BeGreaterThan $emptySetPublicationGate
         $finalContentVerification | Should BeGreaterThan $coordinatedPublicationGate
         $finalContentVerification | Should BeLessThan $assetUpload
     }
@@ -169,5 +203,11 @@ Describe 'Release workflow' {
         $workflow | Should Match 'eng\\release\.ps1 -ReleaseMode Local'
         $workflow | Should Match 'artifacts/releases'
         $testHarness | Should Match 'Invoke-Pester -Script \.\\tests\\unit\\foundation\\ReleaseWorkflow\.Tests\.ps1 -EnableExit'
+    }
+
+    It 'documents partial NuGet publication as fail-fast and non-resumable' {
+        $releaseGuide = Get-Content .\docs\guides\releasing-packages.md -Raw
+        $releaseGuide | Should Match 'does not resume a partial NuGet publication'
+        $releaseGuide | Should Match 'before\s+pushing any additional package'
     }
 }
