@@ -18,6 +18,7 @@ $sampleRoot = Join-Path $repositoryRoot '.artifacts\release-script-test'
 $manifestPath = Join-Path $sampleRoot 'release-manifest.json'
 $dotnetDirectory = Join-Path $sampleRoot 'dotnet'
 $cppDirectory = Join-Path $sampleRoot 'cpp'
+try {
 Remove-Item -LiteralPath $sampleRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $dotnetDirectory, $cppDirectory | Out-Null
 
@@ -80,11 +81,11 @@ finally {
 
 $releaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Local -ExpectedVersion $versionInfo.Version -SourceRef 'refs/heads/test' -SourceCommit '0123456789abcdef0123456789abcdef01234567' -SkipBuild -SkipTest -WhatIf 2>&1
 $releaseLines = @($releaseOutput | ForEach-Object { $_.ToString() })
-if (@($releaseLines | Select-String -SimpleMatch 'pwsh -NoProfile -File .\eng\pack.ps1 -Configuration Release').Count -ne 1) {
+if (@($releaseLines | Select-String -SimpleMatch ("pwsh -NoProfile -File {0} -Configuration Release" -f (Join-Path $repositoryRoot 'eng\pack.ps1'))).Count -ne 1) {
     throw 'Expected release WhatIf output to include the package step exactly once.'
 }
 
-$cmakeInstallLines = @($releaseLines | Select-String -SimpleMatch 'cmake --install .\build\windows-msvc-debug --config Release --prefix')
+$cmakeInstallLines = @($releaseLines | Select-String -SimpleMatch ("cmake --install {0} --config Release --prefix" -f (Join-Path $repositoryRoot 'build\windows-msvc-debug')))
 if ($cmakeInstallLines.Count -ne 1 -or $cmakeInstallLines[0].Line -notmatch 'dearstory-release-[0-9a-f]{32}$') {
     throw 'Expected release WhatIf output to install C++ artifacts to a unique staging prefix.'
 }
@@ -103,41 +104,78 @@ if (@($customReleaseLines | Select-String -SimpleMatch $expectedCustomReleaseDir
 
 $canonicalTag = "v$($versionInfo.Version)"
 $canonicalTagRef = "refs/tags/$canonicalTag"
-$tagRepositoryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-tag-test-{0}" -f [guid]::NewGuid().ToString('N'))
-$tagRepositoryLocationPushed = $false
+$isolatedReleaseRepositoryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-source-test-{0}" -f [guid]::NewGuid().ToString('N'))
+$foreignRepositoryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-caller-test-{0}" -f [guid]::NewGuid().ToString('N'))
+$foreignRepositoryLocationPushed = $false
 try {
-    New-Item -ItemType Directory -Force -Path $tagRepositoryRoot | Out-Null
-    & git -C $tagRepositoryRoot init --quiet
-    & git -C $tagRepositoryRoot config user.name 'DearStory Release Test'
-    & git -C $tagRepositoryRoot config user.email 'release-test@dearstory.invalid'
-    Set-Content -LiteralPath (Join-Path $tagRepositoryRoot 'provenance.txt') -Value 'tagged release source'
-    & git -C $tagRepositoryRoot add provenance.txt
-    & git -C $tagRepositoryRoot commit --quiet -m 'test: create tagged source'
-    $tagCommit = (& git -C $tagRepositoryRoot rev-parse HEAD).Trim()
-    & git -C $tagRepositoryRoot tag $canonicalTag $tagCommit
-    Set-Content -LiteralPath (Join-Path $tagRepositoryRoot 'provenance.txt') -Value 'different release source'
-    & git -C $tagRepositoryRoot add provenance.txt
-    & git -C $tagRepositoryRoot commit --quiet -m 'test: create mismatched source'
-    $mismatchedCommit = (& git -C $tagRepositoryRoot rev-parse HEAD).Trim()
-
-    Push-Location $tagRepositoryRoot
-    $tagRepositoryLocationPushed = $true
-    $tagReleaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $tagCommit -SkipBuild -SkipTest -WhatIf 2>&1
+    & git clone --quiet $repositoryRoot $isolatedReleaseRepositoryRoot
     if ($LASTEXITCODE -ne 0) {
-        throw 'Expected Tag release WhatIf invocation with the canonical stable tag and commit to succeed.'
+        throw 'Unable to create the isolated DearStory release repository.'
     }
 
-    $mismatchedTagOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $mismatchedCommit -SkipBuild -SkipTest -WhatIf 2>&1
+    $isolatedReleaseScript = Join-Path $isolatedReleaseRepositoryRoot 'eng\release.ps1'
+    Copy-Item -LiteralPath $releaseScript -Destination $isolatedReleaseScript -Force
+    & git -C $isolatedReleaseRepositoryRoot config user.name 'DearStory Release Test'
+    & git -C $isolatedReleaseRepositoryRoot config user.email 'release-test@dearstory.invalid'
+    & git -C $isolatedReleaseRepositoryRoot config core.autocrlf false
+    $tagCommit = (& git -C $isolatedReleaseRepositoryRoot rev-parse HEAD).Trim()
+    & git -C $isolatedReleaseRepositoryRoot tag --force $canonicalTag $tagCommit | Out-Null
+
+    & git clone --quiet $isolatedReleaseRepositoryRoot $foreignRepositoryRoot
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Unable to create the unrelated caller repository.'
+    }
+
+    & git -C $foreignRepositoryRoot config user.name 'DearStory Release Test'
+    & git -C $foreignRepositoryRoot config user.email 'release-test@dearstory.invalid'
+    & git -C $foreignRepositoryRoot config core.autocrlf false
+    Set-Content -LiteralPath (Join-Path $foreignRepositoryRoot 'foreign-provenance.txt') -Value 'unrelated repository commit' -NoNewline
+    & git -C $foreignRepositoryRoot add foreign-provenance.txt
+    & git -C $foreignRepositoryRoot commit --quiet -m 'test: create unrelated repository commit'
+    $foreignCommit = (& git -C $foreignRepositoryRoot rev-parse HEAD).Trim()
+    & git -C $foreignRepositoryRoot tag --force $canonicalTag $foreignCommit | Out-Null
+
+    Push-Location $foreignRepositoryRoot
+    $foreignRepositoryLocationPushed = $true
+    $tagReleaseOutput = & pwsh -NoProfile -File $isolatedReleaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $tagCommit -SkipBuild -SkipTest -WhatIf 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Expected Tag release to resolve provenance from the DearStory repository when invoked from an unrelated repository. Output: $($tagReleaseOutput -join [Environment]::NewLine)"
+    }
+
+    $tagReleaseLines = @($tagReleaseOutput | ForEach-Object { $_.ToString() })
+    foreach ($expectedCommandPath in @(
+        (Join-Path $isolatedReleaseRepositoryRoot 'eng\pack.ps1'),
+        (Join-Path $isolatedReleaseRepositoryRoot 'eng\assert-public-package-boundaries.ps1'),
+        (Join-Path $isolatedReleaseRepositoryRoot 'eng\generate-release-manifest.ps1'),
+        (Join-Path $isolatedReleaseRepositoryRoot 'build\windows-msvc-debug')
+    )) {
+        if (@($tagReleaseLines | Select-String -SimpleMatch $expectedCommandPath).Count -ne 1) {
+            throw "Expected release WhatIf output to anchor external invocation path '$expectedCommandPath' to the DearStory repository."
+        }
+    }
+
+    & git -C $foreignRepositoryRoot tag --force $canonicalTag $tagCommit | Out-Null
+    Set-Content -LiteralPath (Join-Path $isolatedReleaseRepositoryRoot 'head-provenance.txt') -Value 'checkout moved beyond canonical tag' -NoNewline
+    & git -C $isolatedReleaseRepositoryRoot add head-provenance.txt
+    & git -C $isolatedReleaseRepositoryRoot commit --quiet -m 'test: move DearStory HEAD beyond canonical tag'
+
+    $headMismatchOutput = & pwsh -NoProfile -File $isolatedReleaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $tagCommit -SkipBuild -SkipTest -WhatIf 2>&1
     if ($LASTEXITCODE -eq 0) {
-        throw 'Expected Tag release with a commit different from the canonical tag commit to fail.'
+        throw 'Expected Tag release to reject a DearStory checkout whose HEAD differs from the canonical tag commit.'
+    }
+
+    $headMismatchLines = @($headMismatchOutput | ForEach-Object { $_.ToString() })
+    if (@($headMismatchLines | Select-String -SimpleMatch 'repository HEAD').Count -eq 0) {
+        throw 'Expected Tag release HEAD mismatch failure to identify repository HEAD provenance.'
     }
 }
 finally {
-    if ($tagRepositoryLocationPushed) {
+    if ($foreignRepositoryLocationPushed) {
         Pop-Location
     }
 
-    Remove-Item -LiteralPath $tagRepositoryRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $foreignRepositoryRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $isolatedReleaseRepositoryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 foreach ($invalidTagRef in @('refs/heads/main', "refs/tags/v$($versionInfo.Version).0")) {
@@ -173,4 +211,8 @@ if (@($stagingReleaseLines | Select-String -SimpleMatch '[System.IO.Directory]::
 
 if (@($stagingReleaseLines | Select-String -SimpleMatch 'Move-Item -LiteralPath').Count -ne 0) {
     throw 'Expected release promotion not to use Move-Item directory destination semantics.'
+}
+}
+finally {
+    Remove-Item -LiteralPath $sampleRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
