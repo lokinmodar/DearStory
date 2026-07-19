@@ -14,10 +14,10 @@ configure_package_config_file(
     ${CMAKE_BINARY_DIR}/DearStoryConfig.cmake
     INSTALL_DESTINATION lib/cmake/DearStory)
 
-configure_file(
-    ${CMAKE_SOURCE_DIR}/cmake/DearStoryConfigVersion.cmake.in
+write_basic_package_version_file(
     ${CMAKE_BINARY_DIR}/DearStoryConfigVersion.cmake
-    @ONLY)
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY ExactVersion)
 
 add_subdirectory(src/protocol/cpp)
 add_subdirectory(src/core/cpp)
@@ -44,3 +44,7 @@ install(
         ${CMAKE_BINARY_DIR}/DearStoryConfig.cmake
         ${CMAKE_BINARY_DIR}/DearStoryConfigVersion.cmake
     DESTINATION lib/cmake/DearStory)
+
+install(
+    FILES ${CMAKE_SOURCE_DIR}/LICENSE
+    DESTINATION share/licenses/DearStory)

@@ -123,6 +123,7 @@ try {
 
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--install', '.\build\windows-msvc-debug', '--config', $Configuration, '--prefix', '.\artifacts\install\dearstory')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\eng\assert-public-package-boundaries.ps1', '-CppInstallPrefix', $installPrefix)
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\PublicPackageBoundaries.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-E', 'rm', '-rf', '.\build\consumers\cpp')
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('-S', '.\tests\consumers\cpp', '-B', '.\build\consumers\cpp', ("-DCMAKE_PREFIX_PATH:PATH={0}" -f $installPrefix), ("-DCMAKE_TOOLCHAIN_FILE:FILEPATH={0}" -f (Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake')), ("-DVCPKG_MANIFEST_DIR:PATH={0}" -f $repositoryRoot))
     Invoke-DearStoryCommand -Executable 'cmake' -Arguments @('--build', '.\build\consumers\cpp', '--config', $Configuration)
