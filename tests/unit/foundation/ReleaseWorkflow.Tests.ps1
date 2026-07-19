@@ -27,11 +27,45 @@ Describe 'Release workflow' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'environment:\s*release'
         $workflow | Should Match 'contents:\s*write'
-        $workflow | Should Match '(?s)\$releaseJson\s*=\s*gh release view \$tag --json isDraft\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+        $workflow | Should Match '(?s)\$releaseJson\s*=\s*gh release view \$tag --json isDraft --repo \$env:GH_REPO\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
         $workflow | Should Match '(?s)\$release\s*=\s*\$releaseJson \| ConvertFrom-Json.*?if \(-not \$release\.isDraft\)\s*\{\s*throw'
         $workflow | Should Match '(?s)gh release create \$tag [^\r\n]* --draft [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
         $workflow | Should Match '(?s)gh release upload \$tag [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
         $workflow | Should Match '(?s)gh release edit \$tag --draft=false [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+    }
+
+    It 'addresses the repository explicitly for every GitHub CLI operation' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $workflow | Should Match 'GH_REPO:\s*\$\{\{\s*github\.repository\s*\}\}'
+
+        $publishScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+        ).Groups['script'].Value
+        $ghCommands = [regex]::Matches($publishScript, '(?m)^\s*gh\s+.+$')
+        $ghCommands.Count | Should BeGreaterThan 0
+        foreach ($ghCommand in $ghCommands) {
+            $ghCommand.Value | Should Match '(--repo\s+\$env:GH_REPO(?:\s|$)|repos/\$env:GH_REPO/)'
+        }
+    }
+
+    It 'rejects an existing release whose tag targets another commit before package publication' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $workflow | Should Match 'https://api\.github\.com/repos/\$env:GH_REPO/releases/tags/\$tag'
+        $workflow | Should Match 'https://api\.github\.com/repos/\$env:GH_REPO/commits/\$tag'
+        $workflow | Should Match 'if \(\$releaseTargetCommit -ne \$sourceCommit\)\s*\{\s*throw'
+
+        $existingReleaseCheck = $workflow.IndexOf('if ($releaseExists)')
+        $targetResolution = $workflow.IndexOf('$releaseTargetCommit =')
+        $targetComparison = $workflow.IndexOf('if ($releaseTargetCommit -ne $sourceCommit)')
+        $packagePublication = $workflow.IndexOf('$publishedPackages = @(Get-PublishedPackages)')
+        $existingReleaseCheck | Should BeGreaterThan -1
+        $targetResolution | Should BeGreaterThan -1
+        $targetComparison | Should BeGreaterThan -1
+        $packagePublication | Should BeGreaterThan -1
+        $existingReleaseCheck | Should BeLessThan $targetResolution
+        $targetResolution | Should BeLessThan $targetComparison
+        $targetComparison | Should BeLessThan $packagePublication
     }
 
     It 'resumes partial NuGet publication and verifies the product unit before finalization' {

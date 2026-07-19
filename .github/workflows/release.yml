@@ -156,6 +156,7 @@ jobs:
       - name: Publish NuGet packages and finalize draft release
         shell: pwsh
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           RELEASE_COMMIT: ${{ needs.validate.outputs.source_commit }}
@@ -198,7 +199,7 @@ jobs:
             return @($published)
           }
 
-          $releaseApiUri = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases/tags/$tag"
+          $releaseApiUri = "https://api.github.com/repos/$env:GH_REPO/releases/tags/$tag"
           $releaseHeaders = @{
             Accept = 'application/vnd.github+json'
             Authorization = "Bearer $env:GH_TOKEN"
@@ -217,13 +218,13 @@ jobs:
           }
 
           if (-not $releaseExists) {
-            gh release create $tag --target $sourceCommit --draft --title "DearStory $tag" --notes-file $manifestPath
+            gh release create $tag --target $sourceCommit --draft --title "DearStory $tag" --notes-file $manifestPath --repo $env:GH_REPO
             if ($LASTEXITCODE -ne 0) {
               throw "GitHub draft release creation failed for '$tag'."
             }
           }
 
-          $releaseJson = gh release view $tag --json isDraft
+          $releaseJson = gh release view $tag --json isDraft --repo $env:GH_REPO
           if ($LASTEXITCODE -ne 0) {
             throw "GitHub release lookup failed for '$tag'."
           }
@@ -231,6 +232,15 @@ jobs:
           $release = $releaseJson | ConvertFrom-Json
           if (-not $release.isDraft) {
             throw "GitHub release '$tag' already exists and is not a draft."
+          }
+
+          if ($releaseExists) {
+            # Once a release tag exists, its tag ref is the authoritative target commit.
+            $releaseTargetApiUri = "https://api.github.com/repos/$env:GH_REPO/commits/$tag"
+            $releaseTargetCommit = (Invoke-RestMethod -Uri $releaseTargetApiUri -Headers $releaseHeaders).sha
+            if ($releaseTargetCommit -ne $sourceCommit) {
+              throw "GitHub release '$tag' targets commit '$releaseTargetCommit', not validated commit '$sourceCommit'."
+            }
           }
 
           $publishedPackages = @(Get-PublishedPackages)
@@ -260,12 +270,12 @@ jobs:
             throw "Coordinated NuGet publication is incomplete for version ${version}: $($unpublishedPackages -join ', ')."
           }
 
-          gh release upload $tag "$releaseRoot\cpp\DearStory-cpp-$version-windows-msvc-x64.zip" "$releaseRoot\SHA256SUMS" "$releaseRoot\release-manifest.json" --clobber
+          gh release upload $tag "$releaseRoot\cpp\DearStory-cpp-$version-windows-msvc-x64.zip" "$releaseRoot\SHA256SUMS" "$releaseRoot\release-manifest.json" --clobber --repo $env:GH_REPO
           if ($LASTEXITCODE -ne 0) {
             throw "GitHub release asset upload failed for '$tag'."
           }
 
-          gh release edit $tag --draft=false --title "DearStory $tag" --notes-file $manifestPath
+          gh release edit $tag --draft=false --title "DearStory $tag" --notes-file $manifestPath --repo $env:GH_REPO
           if ($LASTEXITCODE -ne 0) {
             throw "GitHub release finalization failed for '$tag'."
           }
