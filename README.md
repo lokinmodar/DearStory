@@ -31,7 +31,10 @@ For local package validation and external-consumer setup, see the
 [.NET package guide](docs/guides/consuming-dotnet-packages.md) and the
 [C++ package guide](docs/guides/consuming-cpp-package.md). Maintainers should
 use the [package release guide](docs/guides/releasing-packages.md) for the
-canonical pack, verification, and tagged-release workflow.
+canonical pack, verification, and release workflow. DearStory release
+automation now uses `eng/version.json` as the only public version source.
+Maintainers update that file in a reviewed PR, then release the coordinated
+public package surface through `.github/workflows/release.yml`.
 
 The approved architecture is documented in
 [`docs/superpowers/specs/2026-07-15-dearstory-design.md`](docs/superpowers/specs/2026-07-15-dearstory-design.md).
