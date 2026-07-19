@@ -1,6 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+$readVersionScript = Join-Path $repositoryRoot 'eng\read-version.ps1'
+$versionInfo = & $readVersionScript
+$packageVersion = $versionInfo.Version
 $buildScript = Join-Path $repositoryRoot 'eng\build.ps1'
 $testScript = Join-Path $repositoryRoot 'eng\test.ps1'
 $boundaryTestScript = Join-Path $repositoryRoot 'tests\unit\foundation\PublicPackageBoundaries.Tests.ps1'
@@ -122,9 +125,10 @@ foreach ($expectedCommand in $buildExpectedCommands) {
 $testExpectedCommands = @(
     'ctest --preset windows-msvc-debug --output-on-failure',
     'pwsh -NoProfile -File .\tests\unit\foundation\Doctor.Tests.ps1',
+    'pwsh -NoProfile -File .\tests\unit\foundation\ReleaseVersion.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\BuildScripts.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\CoverageGate.Tests.ps1',
-    'dotnet test .\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj -c Debug -p:DearStoryPackageVersion=0.1.0',
+    "dotnet test .\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj -c Debug -p:DearStoryPackageVersion=$packageVersion",
     'pwsh -NoProfile -File .\eng\assert-public-package-boundaries.ps1 -CppInstallPrefix'
 )
 
@@ -142,6 +146,7 @@ foreach ($expectedCommand in $testExpectedCommands) {
 $coverageExpectedCommands = @(
     'ctest --preset windows-msvc-debug --output-on-failure -C Release',
     'pwsh -NoProfile -File .\tests\unit\foundation\Doctor.Tests.ps1',
+    'pwsh -NoProfile -File .\tests\unit\foundation\ReleaseVersion.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\BuildScripts.Tests.ps1',
     'pwsh -NoProfile -File .\tests\unit\foundation\CoverageGate.Tests.ps1',
     'cmake --build --preset windows-msvc-debug --config Release',
