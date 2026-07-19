@@ -9,17 +9,65 @@ Describe 'Release workflow' {
         $workflow | Should Match 'version:'
     }
 
-    It 'uses draft-first publication and the protected release environment' {
+    It 'passes manual inputs to PowerShell through the environment' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $workflow | Should Match 'MANUAL_REF:\s*\$\{\{\s*inputs\.ref\s*\}\}'
+        $workflow | Should Match 'MANUAL_VERSION:\s*\$\{\{\s*inputs\.version\s*\}\}'
+        $workflow | Should Match '\$env:MANUAL_REF'
+        $workflow | Should Match '\$env:MANUAL_VERSION'
+        $contextScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Resolve release context.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{2}\S)'
+        ).Groups['script'].Value
+        $contextScript | Should Not BeNullOrEmpty
+        $contextScript | Should Not Match '\$\{\{\s*inputs\.(ref|version)\s*\}\}'
+    }
+
+    It 'keeps an existing GitHub release draft and fails every release command immediately' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'environment:\s*release'
         $workflow | Should Match 'contents:\s*write'
-        $workflow | Should Match '--draft'
-        $workflow | Should Match 'dotnet nuget push'
+        $workflow | Should Match '(?s)\$releaseJson\s*=\s*gh release view \$tag --json isDraft\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+        $workflow | Should Match '(?s)\$release\s*=\s*\$releaseJson \| ConvertFrom-Json.*?if \(-not \$release\.isDraft\)\s*\{\s*throw'
+        $workflow | Should Match '(?s)gh release create \$tag [^\r\n]* --draft [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+        $workflow | Should Match '(?s)gh release upload \$tag [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+        $workflow | Should Match '(?s)gh release edit \$tag --draft=false [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+    }
+
+    It 'resumes partial NuGet publication and verifies the product unit before finalization' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $workflow | Should Not Match 'Partial NuGet publication already exists'
+        $workflow | Should Match '\$missingPackages\s*=\s*@\(\$packageIds \| Where-Object \{ \$publishedPackages -notcontains \$_ \}\)'
+        $workflow | Should Match 'foreach \(\$packageId in \$missingPackages\)'
+        $workflow | Should Match '(?s)dotnet nuget push [^\r\n]*\r?\n\s*if \(\$LASTEXITCODE -ne 0\)\s*\{\s*throw'
+        $workflow | Should Match '(?s)\$publishedPackages\s*=\s*@\(Get-PublishedPackages.*?if \(\$publishedPackages\.Count -ne \$packageIds\.Count\)\s*\{\s*throw.*?gh release upload'
+    }
+
+    It 'contains syntactically valid PowerShell in release state steps' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $stepPatterns = @(
+            '(?ms)^\s{6}- name: Resolve release context.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{2}\S)',
+            '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+        )
+
+        foreach ($stepPattern in $stepPatterns) {
+            $script = [regex]::Match($workflow, $stepPattern).Groups['script'].Value -replace '(?m)^ {10}', ''
+            $tokens = $null
+            $parseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseInput(
+                $script,
+                [ref]$tokens,
+                [ref]$parseErrors
+            )
+            $parseErrors.Count | Should Be 0
+        }
     }
 
     It 'makes CI generate the local release unit' {
         $workflow = Get-Content .\.github\workflows\ci.yml -Raw
+        $testHarness = Get-Content .\eng\test.ps1 -Raw
         $workflow | Should Match 'eng\\release\.ps1 -ReleaseMode Local'
         $workflow | Should Match 'artifacts/releases'
+        $testHarness | Should Match 'Invoke-Pester -Script \.\\tests\\unit\\foundation\\ReleaseWorkflow\.Tests\.ps1 -EnableExit'
     }
 }
