@@ -46,6 +46,38 @@ if (($manifestPackageIds -join '|') -ne ($expectedPackageIds -join '|')) {
     throw 'Expected release-manifest.json to preserve the four public .NET package IDs.'
 }
 
+$unexpectedPackagePath = Join-Path $dotnetDirectory "DearStory.Unintended.$($versionInfo.Version).nupkg"
+Remove-Item -LiteralPath (Join-Path $dotnetDirectory "DearStory.Protocol.$($versionInfo.Version).nupkg") -Force
+Set-Content -LiteralPath $unexpectedPackagePath -Value 'unexpected' -NoNewline
+try {
+    & $manifestScript -Version $versionInfo.Version -SourceCommit '0123456789abcdef0123456789abcdef01234567' -SourceRef 'refs/heads/test' -ReleaseMode Local -ArtifactsRoot $sampleRoot -OutputPath $manifestPath
+    throw 'Expected release-manifest.json generation to reject an unexpected public package set.'
+}
+catch {
+    if ($_.Exception.Message -eq 'Expected release-manifest.json generation to reject an unexpected public package set.') {
+        throw
+    }
+}
+finally {
+    Remove-Item -LiteralPath $unexpectedPackagePath -Force -ErrorAction SilentlyContinue
+    Set-Content -LiteralPath (Join-Path $dotnetDirectory "DearStory.Protocol.$($versionInfo.Version).nupkg") -Value 'DearStory.Protocol' -NoNewline
+}
+
+$additionalCppArchivePath = Join-Path $cppDirectory "DearStory-cpp-$($versionInfo.Version)-linux-clang-x64.zip"
+Set-Content -LiteralPath $additionalCppArchivePath -Value 'zip' -NoNewline
+try {
+    & $manifestScript -Version $versionInfo.Version -SourceCommit '0123456789abcdef0123456789abcdef01234567' -SourceRef 'refs/heads/test' -ReleaseMode Local -ArtifactsRoot $sampleRoot -OutputPath $manifestPath
+    throw 'Expected release-manifest.json generation to reject multiple public C++ archives.'
+}
+catch {
+    if ($_.Exception.Message -eq 'Expected release-manifest.json generation to reject multiple public C++ archives.') {
+        throw
+    }
+}
+finally {
+    Remove-Item -LiteralPath $additionalCppArchivePath -Force -ErrorAction SilentlyContinue
+}
+
 $releaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Local -ExpectedVersion $versionInfo.Version -SourceRef 'refs/heads/test' -SourceCommit '0123456789abcdef0123456789abcdef01234567' -SkipBuild -SkipTest -WhatIf 2>&1
 $releaseLines = @($releaseOutput | ForEach-Object { $_.ToString() })
 if (@($releaseLines | Select-String -SimpleMatch 'pwsh -NoProfile -File .\eng\pack.ps1 -Configuration Release').Count -ne 1) {
@@ -69,9 +101,44 @@ if (@($customReleaseLines | Select-String -SimpleMatch $expectedCustomReleaseDir
     throw "Expected release WhatIf output to use custom OutputRoot '$customOutputRoot'."
 }
 
-$tagReleaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef "refs/tags/v$($versionInfo.Version)" -SourceCommit '0123456789abcdef0123456789abcdef01234567' -SkipBuild -SkipTest -WhatIf 2>&1
-if ($LASTEXITCODE -ne 0) {
-    throw 'Expected Tag release WhatIf invocation with the canonical stable tag to succeed.'
+$canonicalTag = "v$($versionInfo.Version)"
+$canonicalTagRef = "refs/tags/$canonicalTag"
+$temporaryTagCreated = $false
+try {
+    $tagCommit = (& git rev-parse -q --verify "$canonicalTag^{commit}" 2>$null | Select-Object -First 1)
+    if ($tagCommit) {
+        $tagCommit = $tagCommit.Trim()
+    }
+
+    if ([string]::IsNullOrWhiteSpace($tagCommit)) {
+        $tagCommit = (& git rev-parse HEAD).Trim()
+        & git tag $canonicalTag $tagCommit
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to create temporary tag '$canonicalTag'."
+        }
+
+        $temporaryTagCreated = $true
+    }
+
+    $tagReleaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $tagCommit -SkipBuild -SkipTest -WhatIf 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Expected Tag release WhatIf invocation with the canonical stable tag and commit to succeed.'
+    }
+
+    $mismatchedCommit = (& git rev-parse HEAD).Trim()
+    if ($mismatchedCommit -eq $tagCommit) {
+        $mismatchedCommit = (& git rev-parse HEAD^).Trim()
+    }
+
+    $mismatchedTagOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $mismatchedCommit -SkipBuild -SkipTest -WhatIf 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        throw 'Expected Tag release with a commit different from the canonical tag commit to fail.'
+    }
+}
+finally {
+    if ($temporaryTagCreated) {
+        & git tag -d $canonicalTag | Out-Null
+    }
 }
 
 foreach ($invalidTagRef in @('refs/heads/main', "refs/tags/v$($versionInfo.Version).0")) {

@@ -13,14 +13,32 @@ $ErrorActionPreference = 'Stop'
 $dotnetDirectory = Join-Path $ArtifactsRoot 'dotnet'
 $cppDirectory = Join-Path $ArtifactsRoot 'cpp'
 $packages = Get-ChildItem -LiteralPath $dotnetDirectory -Filter '*.nupkg' -File | Sort-Object Name
-$cppArchive = Get-ChildItem -LiteralPath $cppDirectory -Filter '*.zip' -File | Sort-Object Name | Select-Object -First 1
+$cppArchives = @(Get-ChildItem -LiteralPath $cppDirectory -Filter '*.zip' -File | Sort-Object Name)
+$expectedPackageIds = @(
+    'DearStory.Protocol',
+    'DearStory.Core',
+    'DearStory.Sdk',
+    'DearStory.Sdk.Generator'
+)
+$expectedPackageNames = @($expectedPackageIds | ForEach-Object { "$_.$Version.nupkg" } | Sort-Object)
+$actualPackageNames = @($packages | ForEach-Object Name)
 
 if ($packages.Count -ne 4) {
     throw "Expected exactly four public .NET packages in '$dotnetDirectory', found $($packages.Count)."
 }
 
-if (-not $cppArchive) {
-    throw "Expected one public C++ archive in '$cppDirectory'."
+if (Compare-Object -ReferenceObject $expectedPackageNames -DifferenceObject $actualPackageNames) {
+    throw "Expected the canonical public .NET package set in '$dotnetDirectory': $($expectedPackageNames -join ', ')."
+}
+
+if ($cppArchives.Count -ne 1) {
+    throw "Expected exactly one public C++ archive in '$cppDirectory', found $($cppArchives.Count)."
+}
+
+$cppArchive = $cppArchives[0]
+$expectedCppArchiveName = "DearStory-cpp-$Version-windows-msvc-x64.zip"
+if ($cppArchive.Name -ne $expectedCppArchiveName) {
+    throw "Expected public C++ archive '$expectedCppArchiveName' in '$cppDirectory', found '$($cppArchive.Name)'."
 }
 
 $releaseRoot = [System.IO.Path]::GetFullPath($ArtifactsRoot)

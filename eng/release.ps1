@@ -48,9 +48,28 @@ if ($ReleaseMode -eq 'Tag') {
     if ($SourceRef -ne $expectedTagRef) {
         throw "Tag releases require SourceRef '$expectedTagRef'."
     }
-}
 
-if ([string]::IsNullOrWhiteSpace($SourceCommit)) {
+    $canonicalTagCommit = (& git rev-parse --verify "$expectedTagRef^{commit}" 2>$null).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tag releases require '$expectedTagRef' to resolve to a commit."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($SourceCommit)) {
+        $SourceCommit = $canonicalTagCommit
+    }
+
+    $resolvedSourceCommit = (& git rev-parse --verify "$SourceCommit^{commit}" 2>$null).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tag release source commit '$SourceCommit' does not resolve to a commit."
+    }
+
+    if ($resolvedSourceCommit -ne $canonicalTagCommit) {
+        throw "Tag release source commit '$resolvedSourceCommit' does not match '$expectedTagRef' commit '$canonicalTagCommit'."
+    }
+
+    $SourceCommit = $canonicalTagCommit
+}
+elseif ([string]::IsNullOrWhiteSpace($SourceCommit)) {
     $SourceCommit = (git rev-parse HEAD).Trim()
 }
 
