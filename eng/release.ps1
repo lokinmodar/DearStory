@@ -156,9 +156,23 @@ if (-not $WhatIfPreference -and (Test-Path -LiteralPath $releaseRoot)) {
     throw "Release output directory '$releaseRoot' already exists. Refusing to replace an existing release unit."
 }
 
-Write-Output ("Move-Item -LiteralPath {0} -Destination {1}" -f $stagingReleaseRoot, $releaseRoot)
+Write-Output ("[System.IO.Directory]::Move('{0}', '{1}')" -f $stagingReleaseRoot, $releaseRoot)
 if ($script:DearStoryCmdlet.ShouldProcess($releaseRoot, 'Promote completed release unit')) {
-    Move-Item -LiteralPath $stagingReleaseRoot -Destination $releaseRoot
+    [System.IO.Directory]::Move($stagingReleaseRoot, $releaseRoot)
+
+    $requiredReleasePaths = @(
+        (Join-Path $releaseRoot 'dotnet'),
+        (Join-Path $releaseRoot 'cpp'),
+        (Join-Path $releaseRoot 'SHA256SUMS'),
+        (Join-Path $releaseRoot 'release-manifest.json')
+    )
+    $missingReleasePaths = @($requiredReleasePaths | Where-Object { -not (Test-Path -LiteralPath $_) })
+    if ((Test-Path -LiteralPath $stagingReleaseRoot) -or
+        -not (Test-Path -LiteralPath $releaseRoot -PathType Container) -or
+        $missingReleasePaths.Count -ne 0) {
+        throw "Unable to verify promoted release unit at '$releaseRoot'."
+    }
+
     $releasePromoted = $true
 }
 }

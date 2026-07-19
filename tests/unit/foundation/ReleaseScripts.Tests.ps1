@@ -103,31 +103,28 @@ if (@($customReleaseLines | Select-String -SimpleMatch $expectedCustomReleaseDir
 
 $canonicalTag = "v$($versionInfo.Version)"
 $canonicalTagRef = "refs/tags/$canonicalTag"
-$temporaryTagCreated = $false
+$tagRepositoryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-release-tag-test-{0}" -f [guid]::NewGuid().ToString('N'))
+$tagRepositoryLocationPushed = $false
 try {
-    $tagCommit = (& git rev-parse -q --verify "$canonicalTag^{commit}" 2>$null | Select-Object -First 1)
-    if ($tagCommit) {
-        $tagCommit = $tagCommit.Trim()
-    }
+    New-Item -ItemType Directory -Force -Path $tagRepositoryRoot | Out-Null
+    & git -C $tagRepositoryRoot init --quiet
+    & git -C $tagRepositoryRoot config user.name 'DearStory Release Test'
+    & git -C $tagRepositoryRoot config user.email 'release-test@dearstory.invalid'
+    Set-Content -LiteralPath (Join-Path $tagRepositoryRoot 'provenance.txt') -Value 'tagged release source'
+    & git -C $tagRepositoryRoot add provenance.txt
+    & git -C $tagRepositoryRoot commit --quiet -m 'test: create tagged source'
+    $tagCommit = (& git -C $tagRepositoryRoot rev-parse HEAD).Trim()
+    & git -C $tagRepositoryRoot tag $canonicalTag $tagCommit
+    Set-Content -LiteralPath (Join-Path $tagRepositoryRoot 'provenance.txt') -Value 'different release source'
+    & git -C $tagRepositoryRoot add provenance.txt
+    & git -C $tagRepositoryRoot commit --quiet -m 'test: create mismatched source'
+    $mismatchedCommit = (& git -C $tagRepositoryRoot rev-parse HEAD).Trim()
 
-    if ([string]::IsNullOrWhiteSpace($tagCommit)) {
-        $tagCommit = (& git rev-parse HEAD).Trim()
-        & git tag $canonicalTag $tagCommit
-        if ($LASTEXITCODE -ne 0) {
-            throw "Unable to create temporary tag '$canonicalTag'."
-        }
-
-        $temporaryTagCreated = $true
-    }
-
+    Push-Location $tagRepositoryRoot
+    $tagRepositoryLocationPushed = $true
     $tagReleaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $tagCommit -SkipBuild -SkipTest -WhatIf 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw 'Expected Tag release WhatIf invocation with the canonical stable tag and commit to succeed.'
-    }
-
-    $mismatchedCommit = (& git rev-parse HEAD).Trim()
-    if ($mismatchedCommit -eq $tagCommit) {
-        $mismatchedCommit = (& git rev-parse HEAD^).Trim()
     }
 
     $mismatchedTagOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Tag -ExpectedVersion $versionInfo.Version -SourceRef $canonicalTagRef -SourceCommit $mismatchedCommit -SkipBuild -SkipTest -WhatIf 2>&1
@@ -136,9 +133,11 @@ try {
     }
 }
 finally {
-    if ($temporaryTagCreated) {
-        & git tag -d $canonicalTag | Out-Null
+    if ($tagRepositoryLocationPushed) {
+        Pop-Location
     }
+
+    Remove-Item -LiteralPath $tagRepositoryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 foreach ($invalidTagRef in @('refs/heads/main', "refs/tags/v$($versionInfo.Version).0")) {
@@ -168,6 +167,10 @@ if (@($stagingReleaseLines | Select-String -SimpleMatch 'Promote completed relea
     throw 'Expected release WhatIf output to promote the completed staging tree.'
 }
 
-if (@($stagingReleaseLines | Select-String -SimpleMatch 'Move-Item -LiteralPath').Count -ne 1) {
-    throw 'Expected release WhatIf output to atomically move the completed release unit into place.'
+if (@($stagingReleaseLines | Select-String -SimpleMatch '[System.IO.Directory]::Move').Count -ne 1) {
+    throw 'Expected release WhatIf output to use a no-clobber directory move for promotion.'
+}
+
+if (@($stagingReleaseLines | Select-String -SimpleMatch 'Move-Item -LiteralPath').Count -ne 0) {
+    throw 'Expected release promotion not to use Move-Item directory destination semantics.'
 }
