@@ -8,7 +8,10 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <DearStoryVersionJsonPath>$(MSBuildThisFileDirectory)eng\version.json</DearStoryVersionJsonPath>
+    <DearStoryVersionJson>$([System.IO.File]::ReadAllText('$(DearStoryVersionJsonPath)'))</DearStoryVersionJson>
+    <VersionPrefix>$([System.Text.RegularExpressions.Regex]::Match('$(DearStoryVersionJson)', '&quot;version&quot;\s*:\s*&quot;([^&quot;]+)&quot;').Groups[1].Value)</VersionPrefix>
+    <Version>$(VersionPrefix)</Version>
     <!-- Library projects must explicitly opt in to package publication. -->
     <IsPackable>false</IsPackable>
     <Authors>Dante</Authors>

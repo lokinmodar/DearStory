@@ -10,6 +10,9 @@ $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\
 $buildDirectory = Join-Path $repositoryRoot 'build\windows-msvc-debug'
 $installPrefix = Join-Path $repositoryRoot '.artifacts\package-boundaries-test\install'
 $guardScript = Join-Path $repositoryRoot 'eng\assert-public-package-boundaries.ps1'
+$versionInfo = & (Join-Path $repositoryRoot 'eng\read-version.ps1')
+$currentVersion = [version]$versionInfo.Version
+$nextMinorVersion = '{0}.{1}.{2}' -f $currentVersion.Major, ($currentVersion.Minor + 1), $currentVersion.Build
 
 if (Test-Path -LiteralPath $installPrefix) {
     Remove-Item -LiteralPath $installPrefix -Recurse -Force
@@ -47,10 +50,10 @@ if ($LASTEXITCODE -eq 0) {
 
 $versionScript = Join-Path $repositoryRoot '.artifacts\package-boundaries-test\version-check.cmake'
 @"
-set(PACKAGE_FIND_VERSION 0.2.0)
+set(PACKAGE_FIND_VERSION $nextMinorVersion)
 include("$($buildDirectory.Replace('\', '/'))/DearStoryConfigVersion.cmake")
 if(PACKAGE_VERSION_COMPATIBLE)
-    message(FATAL_ERROR "0.2.0 must not be compatible with DearStory 0.1.0")
+    message(FATAL_ERROR "$nextMinorVersion must not be compatible with DearStory $($versionInfo.Version)")
 endif()
 "@ | Set-Content -LiteralPath $versionScript -NoNewline
 

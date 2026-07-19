@@ -3,11 +3,17 @@
 ## Versioning
 
 DearStory's library products are pre-1.0, so version changes may include
-breaking changes when the contract requires them. A release must use one
-coherent version for the repository's public .NET packages and the exported
-CMake package. The current CMake project version is the source of the C++
-package version; keep it aligned with the package versions selected for the
-release.
+breaking changes when the contract requires them. A release uses one coherent
+version for every public artifact. The public release version is declared only
+in `eng/version.json`; update that file in a reviewed PR before releasing.
+The build, package, and release scripts derive their version from this file, so
+do not maintain a separate CMake version for the public release.
+
+## Canonical version source
+
+The public release version is declared only in `eng/version.json`.
+The root `vcpkg.json` is a dependency manifest and must not declare a separate
+product version.
 
 The public product boundary is intentionally small:
 
@@ -21,7 +27,65 @@ tooling are internal Windows-first runtime products. Do not publish them as
 part of the library release, and do not introduce them as dependencies of the
 public package surfaces.
 
-## .NET package publishing
+The public release artifacts are exactly:
+
+- `DearStory.Protocol.<version>.nupkg`
+- `DearStory.Core.<version>.nupkg`
+- `DearStory.Sdk.<version>.nupkg`
+- `DearStory.Sdk.Generator.<version>.nupkg`
+- `DearStory-cpp-<version>-windows-msvc-x64.zip`, the public C++ archive
+
+The C++ archive and the four C#/.NET packages are first-class public library
+surfaces. They remain independent of the internal Windows-first runtime layer.
+
+## Release workflow entrypoints
+
+DearStory release automation runs through `.github/workflows/release.yml`.
+After `eng/version.json` is merged to `main`, maintainers can use either
+entrypoint:
+
+- Automatic tag release: push a tag named `vX.Y.Z`. The workflow checks that
+  the tag matches the version in the selected commit's `eng/version.json`.
+- Manual release: start the `release` workflow with the required
+  `workflow_dispatch` inputs `ref` and `version`. The workflow checks that
+  `version` matches `eng/version.json` and that `ref` resolves to a commit
+  reachable from `origin/main`.
+
+Both paths validate the source commit, build the same coordinated release unit,
+and use the version from `eng/version.json` for its package and archive names.
+
+## Atomic release behavior
+
+The workflow treats the public artifacts as one atomic product unit. The GitHub
+Release is created or retained as a `draft` until all of these files are
+present:
+
+- `DearStory.Protocol.0.1.0.nupkg`
+- `DearStory.Core.0.1.0.nupkg`
+- `DearStory.Sdk.0.1.0.nupkg`
+- `DearStory.Sdk.Generator.0.1.0.nupkg`
+- `DearStory-cpp-0.1.0-windows-msvc-x64.zip`
+- `SHA256SUMS`
+- `release-manifest.json`
+
+The coordinated publication order is:
+
+1. create or reuse the draft GitHub Release
+2. reconcile or upload the required GitHub release assets
+3. publish the four NuGet packages
+4. verify the full public package set
+5. publish the GitHub Release
+
+The required GitHub release assets are the public C++ archive, `SHA256SUMS`,
+and `release-manifest.json`. Only after all coordinated publication steps
+succeed does the workflow change the GitHub Release from `draft` to published.
+If any step fails, the GitHub Release remains in `draft` rather than
+presenting a partial public release. A rerun does not resume a partial NuGet
+publication: if NuGet already contains only a subset of the four packages, the
+workflow fails before pushing any additional package and leaves the GitHub
+Release in `draft` for manual resolution.
+
+## Local package preparation
 
 Build the Release configuration, then produce the package artifacts:
 
@@ -36,12 +100,11 @@ pwsh -NoProfile -File .\eng\pack.ps1 -Configuration Release
 `artifacts\packages\local-feed`. Treat `dotnet` as the publishing source and
 `local-feed` as the local-consumer validation source.
 
-After the verification gates pass, publish the `.nupkg` files from
-`artifacts\packages\dotnet` to NuGet under the release tag's version. Publish
-only the four public packages, and retain the generated artifacts associated
-with the tag so a release can be audited or reproduced.
+These local package files are inputs to the coordinated release unit. Do not
+publish them directly; `.github/workflows/release.yml` is the only publication
+path for NuGet and GitHub Release assets.
 
-## C++ install artifact publishing
+## Local C++ artifact preparation
 
 Create the C++ install tree from the configured Release build:
 
@@ -49,9 +112,10 @@ Create the C++ install tree from the configured Release build:
 cmake --install .\build\windows-msvc-debug --config Release --prefix .\artifacts\install\dearstory
 ```
 
-Archive the contents of `artifacts\install\dearstory` as the C++ package
-artifact and attach that archive to the tagged release. Consumers unpack the
-archive and pass its extracted root through `CMAKE_PREFIX_PATH`, for example:
+The release script archives this install tree into the coordinated release
+unit. Do not manually attach an archive to a GitHub Release. Consumers unpack
+the workflow-published archive and pass its extracted root through
+`CMAKE_PREFIX_PATH`, for example:
 
 ```powershell
 cmake -S .\consumer -B .\consumer-build -DCMAKE_PREFIX_PATH:PATH=C:\path\to\dearstory
@@ -80,6 +144,20 @@ configures an external CMake consumer with `CMAKE_PREFIX_PATH`, builds it, and
 runs its tests. The runner command keeps the current Windows static-docs slice
 covered without making that internal runtime tool a public library dependency.
 
-Run `pwsh -NoProfile -File .\eng\pack.ps1 -Configuration Release`, verify
-`eng\test.ps1 -Configuration Release`, then publish the `.nupkg` files and
-attach the installed C++ package archive to the tagged release.
+For local release-unit validation, use the release script after the build and
+test gates:
+
+```powershell
+$version = (& .\eng\read-version.ps1).Version
+$commit = (git rev-parse HEAD).Trim()
+pwsh -NoProfile -File .\eng\release.ps1 -ReleaseMode Local `
+  -ExpectedVersion $version -SourceRef refs/heads/main `
+  -SourceCommit $commit -OutputRoot .\artifacts\local-release-check `
+  -SkipBuild -SkipTest
+```
+
+The local command creates the same versioned release unit that the GitHub
+workflow uploads. It refuses to overwrite an existing versioned output, so use
+a clean output location or a fresh `-OutputRoot` for each repeated validation.
+`.github/workflows/release.yml` is the authoritative, coordinated publication
+path; do not publish individual packages or a C++ archive outside that unit.

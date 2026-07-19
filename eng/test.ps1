@@ -84,12 +84,8 @@ $ctestArguments = @('--preset', 'windows-msvc-debug', '--output-on-failure')
 $dotnetTestArguments = @('--no-build', '-m:1')
 $previousTestConfiguration = $env:DEARSTORY_TEST_CONFIGURATION
 $previousLocalFeed = $env:DearStoryLocalFeed
-$buildPropertiesPath = Join-Path $PWD 'Directory.Build.props'
-[xml]$buildProperties = Get-Content -LiteralPath $buildPropertiesPath
-$packageVersion = [string]$buildProperties.Project.PropertyGroup.VersionPrefix
-if ([string]::IsNullOrWhiteSpace($packageVersion)) {
-    throw "VersionPrefix was not found in '$buildPropertiesPath'."
-}
+$readVersionScript = Join-Path $PSScriptRoot 'read-version.ps1'
+$packageVersion = (& $readVersionScript).Version
 
 if ($Configuration -eq 'Release') {
     $ctestArguments += @('-C', 'Release')
@@ -104,7 +100,10 @@ try {
         Invoke-DearStoryCommand -Executable 'dotnet' -Arguments (@('test', $managedTestProject) + $dotnetTestArguments)
     }
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\Doctor.Tests.ps1')
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\ReleaseVersion.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\BuildScripts.Tests.ps1')
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\ReleaseScripts.Tests.ps1')
+    Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\ReleaseWorkflow.Tests.ps1 -EnableExit')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-File', '.\tests\unit\foundation\CoverageGate.Tests.ps1')
     Invoke-DearStoryCommand -Executable 'pwsh' -Arguments @('-NoProfile', '-Command', 'Invoke-Pester -Script .\tests\unit\foundation\VisualBaselineWorkflow.Tests.ps1')
 

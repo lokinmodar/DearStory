@@ -90,6 +90,19 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -File .\eng\test.ps1 -Configuration Release -Coverage
 
+      - name: Prepare release unit
+        shell: pwsh
+        run: |
+          $version = (& .\eng\read-version.ps1).Version
+          pwsh -NoProfile -File .\eng\release.ps1 -ReleaseMode Local -ExpectedVersion $version -SourceRef $env:GITHUB_REF -SourceCommit $env:GITHUB_SHA -SkipBuild -SkipTest
+
+      - name: Upload release dry-run artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: dearstory-release-unit
+          path: artifacts/releases
+          if-no-files-found: error
+
       - name: Validate canonical baselines
         shell: pwsh
         run: dotnet run --project .\src\runner\dotnet\DearStory.Runner\DearStory.Runner.csproj -- build .\examples\workspaces\windows-slice --configuration Release --visual-backend warp --canonical-only

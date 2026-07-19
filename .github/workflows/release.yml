@@ -1,0 +1,445 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Commit, branch or tag to release'
+        required: true
+        type: string
+      version:
+        description: 'Version expected in eng/version.json'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dearstory-release-${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: windows-2022
+    outputs:
+      version: ${{ steps.context.outputs.version }}
+      tag_name: ${{ steps.context.outputs.tag_name }}
+      source_ref: ${{ steps.context.outputs.source_ref }}
+      source_commit: ${{ steps.context.outputs.source_commit }}
+      checkout_ref: ${{ steps.context.outputs.checkout_ref }}
+      release_mode: ${{ steps.context.outputs.release_mode }}
+    steps:
+      - name: Checkout selected ref
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Resolve release context
+        id: context
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_REF: ${{ inputs.ref }}
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:EVENT_NAME -eq 'workflow_dispatch') {
+            git fetch origin main
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ancestry refresh from origin/main failed."
+            }
+
+            $sourceCommitOutput = git rev-parse --verify --end-of-options "$env:MANUAL_REF^{commit}"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ref '$env:MANUAL_REF' could not be resolved to a commit."
+            }
+
+            $sourceCommit = $sourceCommitOutput.Trim()
+
+            git merge-base --is-ancestor $sourceCommit origin/main
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ref '$env:MANUAL_REF' is not reachable from origin/main."
+            }
+
+            $versionFile = Join-Path $env:RUNNER_TEMP "release-version-$sourceCommit.json"
+            $versionJson = git show "$sourceCommit`:eng/version.json"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ref '$env:MANUAL_REF' does not contain eng/version.json."
+            }
+
+            Set-Content -LiteralPath $versionFile -Value $versionJson -NoNewline
+            $versionInfo = & .\eng\read-version.ps1 -Path $versionFile
+            $tagName = $versionInfo.Tag
+            if ($env:MANUAL_VERSION -ne $versionInfo.Version) {
+              throw "Manual release version '$env:MANUAL_VERSION' does not match repository version '$($versionInfo.Version)'."
+            }
+
+            "version=$($versionInfo.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "tag_name=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "source_ref=$env:MANUAL_REF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "source_commit=$sourceCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "checkout_ref=$sourceCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "release_mode=Manual" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+
+          $versionInfo = & .\eng\read-version.ps1
+          $tagName = $versionInfo.Tag
+
+          if ($env:GITHUB_REF_NAME -ne $tagName) {
+            throw "Tag '$env:GITHUB_REF_NAME' does not match repository version tag '$tagName'."
+          }
+
+          "version=$($versionInfo.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag_name=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_ref=$env:GITHUB_REF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source_commit=$(git rev-parse HEAD)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "checkout_ref=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_mode=Tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+  build_release_unit:
+    needs: validate
+    runs-on: windows-2022
+    env:
+      EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+      RELEASE_MODE: ${{ needs.validate.outputs.release_mode }}
+      SOURCE_COMMIT: ${{ needs.validate.outputs.source_commit }}
+      SOURCE_REF: ${{ needs.validate.outputs.source_ref }}
+      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.cache\vcpkg\archives
+      NUGET_PACKAGES: ${{ github.workspace }}\.cache\nuget\packages
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.validate.outputs.checkout_ref }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+
+      - name: Prepare vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
+          git -C $env:VCPKG_ROOT checkout 1db84273378ff8e2d30e7bc7fdd5d1cb4f4260fc
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          New-Item -ItemType Directory -Force -Path .\artifacts\logs, .\.cache\vcpkg\archives, .\.cache\nuget\packages | Out-Null
+
+      - name: Doctor
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\doctor.ps1
+
+      - name: Check generated protocol sources
+        shell: pwsh
+        run: pwsh -NoProfile -File .\eng\generate-protocol.ps1 -Check
+
+      - name: Build release unit
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File .\eng\release.ps1 `
+            -ReleaseMode $env:RELEASE_MODE `
+            -ExpectedVersion $env:EXPECTED_VERSION `
+            -SourceRef $env:SOURCE_REF `
+            -SourceCommit $env:SOURCE_COMMIT
+
+      - name: Upload release unit
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: dearstory-release-unit-${{ needs.validate.outputs.version }}
+          path: artifacts/releases/${{ needs.validate.outputs.version }}
+          if-no-files-found: error
+
+  publish:
+    needs: [validate, build_release_unit]
+    runs-on: windows-2022
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Download release unit
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: dearstory-release-unit-${{ needs.validate.outputs.version }}
+          path: artifacts/releases/${{ needs.validate.outputs.version }}
+
+      - name: Publish NuGet packages and finalize draft release
+        shell: pwsh
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          RELEASE_COMMIT: ${{ needs.validate.outputs.source_commit }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag_name }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          $version = $env:RELEASE_VERSION
+          $tag = $env:RELEASE_TAG
+          $sourceCommit = $env:RELEASE_COMMIT
+          $releaseRoot = Join-Path $PWD "artifacts\releases\$version"
+          $manifestPath = Join-Path $releaseRoot 'release-manifest.json'
+          $packageBaseUrl = 'https://api.nuget.org/v3-flatcontainer'
+          $packageIds = @(
+            'DearStory.Protocol',
+            'DearStory.Core',
+            'DearStory.Sdk',
+            'DearStory.Sdk.Generator'
+          )
+          $publishedPackageRoot = Join-Path $env:RUNNER_TEMP "dearstory-published-nuget\$version"
+          New-Item -ItemType Directory -Force -Path $publishedPackageRoot | Out-Null
+
+          function Get-PublishedPackages {
+            $published = foreach ($packageId in $packageIds) {
+              $indexUrl = '{0}/{1}/index.json' -f $packageBaseUrl, $packageId.ToLowerInvariant()
+              try {
+                $index = Invoke-RestMethod -Uri $indexUrl
+              }
+              catch {
+                if ($null -ne $_.Exception.Response -and
+                    [int]$_.Exception.Response.StatusCode -eq 404) {
+                  continue
+                }
+
+                throw
+              }
+
+              if ($index.versions -contains $version) {
+                $packageId
+              }
+            }
+
+            return @($published)
+          }
+
+          function Get-NormalizedPackageContentHash {
+            param(
+              [Parameter(Mandatory)]
+              [string] $PackagePath
+            )
+
+            $packageArchive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
+            try {
+              $contentManifest = foreach ($entry in @($packageArchive.Entries |
+                  Where-Object { $_.FullName -ine '.signature.p7s' } |
+                  Sort-Object -Property FullName)) {
+                if ([string]::IsNullOrEmpty($entry.Name)) {
+                  continue
+                }
+
+                $entryStream = $entry.Open()
+                try {
+                  $entryHashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+                  try {
+                    $entryHash = $entryHashAlgorithm.ComputeHash($entryStream)
+                  }
+                  finally {
+                    $entryHashAlgorithm.Dispose()
+                  }
+                }
+                finally {
+                  $entryStream.Dispose()
+                }
+
+                '{0}:{1}' -f $entry.FullName, [Convert]::ToBase64String($entryHash)
+              }
+
+              $manifestHashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+              try {
+                $manifestBytes = [System.Text.Encoding]::UTF8.GetBytes(($contentManifest -join "`n"))
+                return [Convert]::ToHexString($manifestHashAlgorithm.ComputeHash($manifestBytes))
+              }
+              finally {
+                $manifestHashAlgorithm.Dispose()
+              }
+            }
+            finally {
+              $packageArchive.Dispose()
+            }
+          }
+
+          function Assert-PublishedPackageMatchesReleaseUnit {
+            param(
+              [Parameter(Mandatory)]
+              [string] $PackageId
+            )
+
+            $normalizedPackageId = $PackageId.ToLowerInvariant()
+            $normalizedVersion = $version.ToLowerInvariant()
+            $packageUri = '{0}/{1}/{2}/{1}.{2}.nupkg' -f $packageBaseUrl, $normalizedPackageId, $normalizedVersion
+            $packagePath = Join-Path $releaseRoot "dotnet\$PackageId.$version.nupkg"
+            $publishedPackagePath = Join-Path $publishedPackageRoot "$normalizedPackageId.$normalizedVersion.nupkg"
+
+            Invoke-WebRequest -Uri $packageUri -OutFile $publishedPackagePath
+            $releasePackageContentHash = Get-NormalizedPackageContentHash -PackagePath $packagePath
+            $publishedPackageContentHash = Get-NormalizedPackageContentHash -PackagePath $publishedPackagePath
+            if ($publishedPackageContentHash -ne $releasePackageContentHash) {
+              throw "Published NuGet package '$PackageId' version '$version' does not match the coordinated release unit."
+            }
+          }
+
+          $releaseApiUri = "https://api.github.com/repos/$env:GH_REPO/releases/tags/$tag"
+          $releaseHeaders = @{
+            Accept = 'application/vnd.github+json'
+            Authorization = "Bearer $env:GH_TOKEN"
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $releaseExists = $false
+          try {
+            Invoke-RestMethod -Uri $releaseApiUri -Headers $releaseHeaders | Out-Null
+            $releaseExists = $true
+          }
+          catch {
+            if ($null -eq $_.Exception.Response -or
+                [int]$_.Exception.Response.StatusCode -ne 404) {
+              throw
+            }
+          }
+
+          if (-not $releaseExists) {
+            gh release create $tag --target $sourceCommit --draft --title "DearStory $tag" --notes-file $manifestPath --repo $env:GH_REPO
+            if ($LASTEXITCODE -ne 0) {
+              throw "GitHub draft release creation failed for '$tag'."
+            }
+          }
+
+          $releaseJson = gh release view $tag --json isDraft --repo $env:GH_REPO
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release lookup failed for '$tag'."
+          }
+
+          $release = $releaseJson | ConvertFrom-Json
+          if (-not $release.isDraft) {
+            throw "GitHub release '$tag' already exists and is not a draft."
+          }
+
+          # The tag ref is authoritative whether the release was found or just created.
+          $releaseTargetApiUri = "https://api.github.com/repos/$env:GH_REPO/commits/$tag"
+          $releaseTargetCommit = (Invoke-RestMethod -Uri $releaseTargetApiUri -Headers $releaseHeaders).sha
+          if ($releaseTargetCommit -ne $sourceCommit) {
+            throw "GitHub release '$tag' targets commit '$releaseTargetCommit', not validated commit '$sourceCommit'."
+          }
+
+          $existingAssetRoot = Join-Path $env:RUNNER_TEMP "dearstory-existing-release-assets\$version"
+          New-Item -ItemType Directory -Force -Path $existingAssetRoot | Out-Null
+          $releaseAssetsJson = gh release view $tag --json assets --repo $env:GH_REPO
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release asset lookup failed for '$tag'."
+          }
+
+          $existingReleaseAssets = @((($releaseAssetsJson | ConvertFrom-Json).assets))
+          function Sync-ReleaseAsset {
+            param(
+              [Parameter(Mandatory)]
+              [string] $AssetName,
+              [Parameter(Mandatory)]
+              [string] $AssetPath
+            )
+
+            $matchingAssets = @($existingReleaseAssets | Where-Object { $_.name -ceq $AssetName })
+            if ($matchingAssets.Count -eq 0) {
+              gh release upload $tag $AssetPath --repo $env:GH_REPO
+              if ($LASTEXITCODE -ne 0) {
+                throw "GitHub release asset upload failed for '$AssetName' on '$tag'."
+              }
+
+              return
+            }
+
+            if ($matchingAssets.Count -ne 1) {
+              throw "GitHub release '$tag' has multiple assets named '$AssetName'."
+            }
+
+            $downloadedAssetPath = Join-Path $existingAssetRoot $AssetName
+            gh release download $tag --pattern $AssetName --dir $existingAssetRoot --repo $env:GH_REPO
+            if ($LASTEXITCODE -ne 0) {
+              throw "GitHub release asset download failed for '$AssetName' on '$tag'."
+            }
+
+            $releaseAssetHash = (Get-FileHash -LiteralPath $AssetPath -Algorithm SHA256).Hash
+            $existingAssetHash = (Get-FileHash -LiteralPath $downloadedAssetPath -Algorithm SHA256).Hash
+            if ($existingAssetHash -ne $releaseAssetHash) {
+              throw "GitHub release asset '$AssetName' already exists with different content."
+            }
+          }
+
+          $requiredReleaseAssets = @(
+            [pscustomobject]@{
+              Name = "DearStory-cpp-$version-windows-msvc-x64.zip"
+              Path = Join-Path $releaseRoot "cpp\DearStory-cpp-$version-windows-msvc-x64.zip"
+            },
+            [pscustomobject]@{
+              Name = 'SHA256SUMS'
+              Path = Join-Path $releaseRoot 'SHA256SUMS'
+            },
+            [pscustomobject]@{
+              Name = 'release-manifest.json'
+              Path = $manifestPath
+            }
+          )
+
+          $approvedReleaseAssetNames = @($requiredReleaseAssets | ForEach-Object { $_.Name })
+          $unexpectedReleaseAssets = @($existingReleaseAssets | Where-Object {
+              $approvedReleaseAssetNames -cnotcontains $_.name
+            })
+          if ($unexpectedReleaseAssets.Count -ne 0) {
+            throw "GitHub release '$tag' has unexpected draft asset(s): $($unexpectedReleaseAssets.name -join ', ')."
+          }
+
+          foreach ($requiredReleaseAsset in $requiredReleaseAssets) {
+            Sync-ReleaseAsset -AssetName $requiredReleaseAsset.Name -AssetPath $requiredReleaseAsset.Path
+          }
+
+          $publishedPackages = @(Get-PublishedPackages)
+          if ($publishedPackages.Count -gt 0 -and
+              $publishedPackages.Count -lt $packageIds.Count) {
+            throw "Partial NuGet publication already exists for version ${version}: $($publishedPackages -join ', '). The draft release will not resume package publication."
+          }
+
+          foreach ($packageId in $publishedPackages) {
+            Assert-PublishedPackageMatchesReleaseUnit -PackageId $packageId
+          }
+
+          if ($publishedPackages.Count -eq 0) {
+            foreach ($packageId in $packageIds) {
+              $packagePath = Join-Path $releaseRoot "dotnet\$packageId.$version.nupkg"
+              dotnet nuget push $packagePath --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+              if ($LASTEXITCODE -ne 0) {
+                throw "NuGet publication failed for '$packageId'."
+              }
+            }
+          }
+
+          $verificationAttempts = 12
+          for ($attempt = 1; $attempt -le $verificationAttempts; $attempt++) {
+            $publishedPackages = @(Get-PublishedPackages)
+            if ($publishedPackages.Count -eq $packageIds.Count) {
+              break
+            }
+
+            if ($attempt -lt $verificationAttempts) {
+              Start-Sleep -Seconds 10
+            }
+          }
+
+          $unpublishedPackages = @($packageIds | Where-Object { $publishedPackages -notcontains $_ })
+          if ($publishedPackages.Count -ne $packageIds.Count) {
+            throw "Coordinated NuGet publication is incomplete for version ${version}: $($unpublishedPackages -join ', ')."
+          }
+
+          foreach ($packageId in $packageIds) {
+            Assert-PublishedPackageMatchesReleaseUnit -PackageId $packageId
+          }
+
+          gh release edit $tag --draft=false --title "DearStory $tag" --notes-file $manifestPath --repo $env:GH_REPO
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release finalization failed for '$tag'."
+          }
