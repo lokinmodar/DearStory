@@ -21,6 +21,39 @@ if ($versionInfo.Version -ne $canonicalVersion -or $versionInfo.Tag -ne "v$canon
     throw 'Expected read-version.ps1 to derive Version, Tag, and IsStableSemVer from eng/version.json.'
 }
 
+$invalidVersionDocuments = @(
+    @{ Name = 'prerelease'; Content = '{"version":"1.2.3-preview.1"}' },
+    @{ Name = 'build metadata'; Content = '{"version":"1.2.3+build.1"}' },
+    @{ Name = 'leading-zero major component'; Content = '{"version":"01.2.3"}' },
+    @{ Name = 'leading-zero minor component'; Content = '{"version":"1.02.3"}' },
+    @{ Name = 'leading-zero patch component'; Content = '{"version":"1.2.03"}' },
+    @{ Name = 'missing version'; Content = '{}' },
+    @{ Name = 'empty version'; Content = '{"version":""}' },
+    @{ Name = 'malformed JSON'; Content = '{"version":' }
+)
+$invalidVersionRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("dearstory-invalid-version-{0}" -f [guid]::NewGuid().ToString('N'))
+try {
+    New-Item -ItemType Directory -Force -Path $invalidVersionRoot | Out-Null
+    foreach ($invalidVersionDocument in $invalidVersionDocuments) {
+        $invalidVersionPath = Join-Path $invalidVersionRoot "$($invalidVersionDocument.Name).json"
+        Set-Content -LiteralPath $invalidVersionPath -Value $invalidVersionDocument.Content -NoNewline
+        $wasRejected = $false
+        try {
+            & $readVersionScript -Path $invalidVersionPath | Out-Null
+        }
+        catch {
+            $wasRejected = $true
+        }
+
+        if (-not $wasRejected) {
+            throw "Expected $($invalidVersionDocument.Name) version input to be rejected."
+        }
+    }
+}
+finally {
+    Remove-Item -LiteralPath $invalidVersionRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $vcpkgManifest = Get-Content -Raw -LiteralPath $vcpkgManifestPath | ConvertFrom-Json
 $vcpkgVersionProperties = @($vcpkgManifest.PSObject.Properties.Name | Where-Object { $_ -match '^version' })
 if ($vcpkgVersionProperties.Count -ne 0) {

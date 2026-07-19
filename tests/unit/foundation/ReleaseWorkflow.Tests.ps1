@@ -44,6 +44,18 @@ Describe 'Release workflow' {
         $contextScript | Should Not Match '\$\{\{\s*inputs\.(ref|version)\s*\}\}'
     }
 
+    It 'validates a non-tip manual release ancestor against the complete main history' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $contextScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Resolve release context.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{2}\S)'
+        ).Groups['script'].Value
+
+        $contextScript | Should Match 'git fetch origin main'
+        $contextScript | Should Not Match 'git fetch origin main\s+--depth'
+        $contextScript | Should Match 'git merge-base --is-ancestor \$sourceCommit origin/main'
+    }
+
     It 'passes validated build inputs to PowerShell through the environment' {
         $workflow = Get-Content .\.github\workflows\release.yml -Raw
         $workflow | Should Match 'RELEASE_MODE:\s*\$\{\{\s*needs\.validate\.outputs\.release_mode\s*\}\}'
@@ -166,7 +178,7 @@ Describe 'Release workflow' {
         $emptySetPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -eq 0)')
         $coordinatedPublicationGate = $publishScript.IndexOf('if ($publishedPackages.Count -ne $packageIds.Count)')
         $finalContentVerification = $publishScript.IndexOf('foreach ($packageId in $packageIds)', $coordinatedPublicationGate)
-        $assetUpload = $publishScript.IndexOf('gh release upload')
+        $assetReconciliation = $publishScript.IndexOf('foreach ($requiredReleaseAsset in $requiredReleaseAssets)')
 
         $initialPublishedLookup | Should BeGreaterThan -1
         $partialPublicationGate | Should BeGreaterThan $initialPublishedLookup
@@ -174,7 +186,35 @@ Describe 'Release workflow' {
         $emptySetPublicationGate | Should BeGreaterThan $initialContentVerification
         $coordinatedPublicationGate | Should BeGreaterThan $emptySetPublicationGate
         $finalContentVerification | Should BeGreaterThan $coordinatedPublicationGate
-        $finalContentVerification | Should BeLessThan $assetUpload
+        $finalContentVerification | Should BeGreaterThan $assetReconciliation
+    }
+
+    It 'reconciles required draft assets before NuGet publication without overwriting conflicts' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $publishScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Publish NuGet packages and finalize draft release.*?^\s{8}run: \|\r?\n(?<script>.*)$'
+        ).Groups['script'].Value
+
+        $publishScript | Should Match 'DearStory-cpp-\$version-windows-msvc-x64\.zip'
+        $publishScript | Should Match "'SHA256SUMS'"
+        $publishScript | Should Match "'release-manifest\.json'"
+        $publishScript | Should Match 'function Sync-ReleaseAsset'
+        $publishScript | Should Match 'gh release view \$tag --json assets --repo \$env:GH_REPO'
+        $publishScript | Should Match 'gh release download \$tag --pattern \$assetName --dir \$existingAssetRoot --repo \$env:GH_REPO'
+        $publishScript | Should Match 'Get-FileHash -LiteralPath \$AssetPath -Algorithm SHA256'
+        $publishScript | Should Match 'Get-FileHash -LiteralPath \$downloadedAssetPath -Algorithm SHA256'
+        $publishScript | Should Match 'already exists with different content'
+        $publishScript | Should Not Match 'gh release upload .*--clobber'
+
+        $assetReconciliation = $publishScript.IndexOf('foreach ($requiredReleaseAsset in $requiredReleaseAssets)')
+        $packagePublication = $publishScript.IndexOf('dotnet nuget push')
+        $finalPackageVerification = $publishScript.IndexOf('foreach ($packageId in $packageIds)', $packagePublication)
+        $releaseFinalization = $publishScript.IndexOf('gh release edit $tag --draft=false')
+        $assetReconciliation | Should BeGreaterThan -1
+        $packagePublication | Should BeGreaterThan $assetReconciliation
+        $finalPackageVerification | Should BeGreaterThan $packagePublication
+        $releaseFinalization | Should BeGreaterThan $finalPackageVerification
     }
 
     It 'contains syntactically valid PowerShell in release state steps' {

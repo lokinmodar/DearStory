@@ -55,7 +55,7 @@ jobs:
               throw "Manual release version '$env:MANUAL_VERSION' does not match repository version '$($versionInfo.Version)'."
             }
 
-            git fetch origin main --depth=1
+            git fetch origin main
             $sourceCommit = (git rev-parse --verify --end-of-options "$env:MANUAL_REF^{commit}").Trim()
             if ($LASTEXITCODE -ne 0) {
               throw "Manual release ref '$env:MANUAL_REF' could not be resolved to a commit."
@@ -313,6 +313,68 @@ jobs:
             throw "GitHub release '$tag' targets commit '$releaseTargetCommit', not validated commit '$sourceCommit'."
           }
 
+          $existingAssetRoot = Join-Path $env:RUNNER_TEMP "dearstory-existing-release-assets\$version"
+          New-Item -ItemType Directory -Force -Path $existingAssetRoot | Out-Null
+          $releaseAssetsJson = gh release view $tag --json assets --repo $env:GH_REPO
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release asset lookup failed for '$tag'."
+          }
+
+          $existingReleaseAssets = @((($releaseAssetsJson | ConvertFrom-Json).assets))
+          function Sync-ReleaseAsset {
+            param(
+              [Parameter(Mandatory)]
+              [string] $AssetName,
+              [Parameter(Mandatory)]
+              [string] $AssetPath
+            )
+
+            $matchingAssets = @($existingReleaseAssets | Where-Object { $_.name -ceq $AssetName })
+            if ($matchingAssets.Count -eq 0) {
+              gh release upload $tag $AssetPath --repo $env:GH_REPO
+              if ($LASTEXITCODE -ne 0) {
+                throw "GitHub release asset upload failed for '$AssetName' on '$tag'."
+              }
+
+              return
+            }
+
+            if ($matchingAssets.Count -ne 1) {
+              throw "GitHub release '$tag' has multiple assets named '$AssetName'."
+            }
+
+            $downloadedAssetPath = Join-Path $existingAssetRoot $AssetName
+            gh release download $tag --pattern $AssetName --dir $existingAssetRoot --repo $env:GH_REPO
+            if ($LASTEXITCODE -ne 0) {
+              throw "GitHub release asset download failed for '$AssetName' on '$tag'."
+            }
+
+            $releaseAssetHash = (Get-FileHash -LiteralPath $AssetPath -Algorithm SHA256).Hash
+            $existingAssetHash = (Get-FileHash -LiteralPath $downloadedAssetPath -Algorithm SHA256).Hash
+            if ($existingAssetHash -ne $releaseAssetHash) {
+              throw "GitHub release asset '$AssetName' already exists with different content."
+            }
+          }
+
+          $requiredReleaseAssets = @(
+            [pscustomobject]@{
+              Name = "DearStory-cpp-$version-windows-msvc-x64.zip"
+              Path = Join-Path $releaseRoot "cpp\DearStory-cpp-$version-windows-msvc-x64.zip"
+            },
+            [pscustomobject]@{
+              Name = 'SHA256SUMS'
+              Path = Join-Path $releaseRoot 'SHA256SUMS'
+            },
+            [pscustomobject]@{
+              Name = 'release-manifest.json'
+              Path = $manifestPath
+            }
+          )
+
+          foreach ($requiredReleaseAsset in $requiredReleaseAssets) {
+            Sync-ReleaseAsset -AssetName $requiredReleaseAsset.Name -AssetPath $requiredReleaseAsset.Path
+          }
+
           $publishedPackages = @(Get-PublishedPackages)
           if ($publishedPackages.Count -gt 0 -and
               $publishedPackages.Count -lt $packageIds.Count) {
@@ -352,11 +414,6 @@ jobs:
 
           foreach ($packageId in $packageIds) {
             Assert-PublishedPackageMatchesReleaseUnit -PackageId $packageId
-          }
-
-          gh release upload $tag "$releaseRoot\cpp\DearStory-cpp-$version-windows-msvc-x64.zip" "$releaseRoot\SHA256SUMS" "$releaseRoot\release-manifest.json" --clobber --repo $env:GH_REPO
-          if ($LASTEXITCODE -ne 0) {
-            throw "GitHub release asset upload failed for '$tag'."
           }
 
           gh release edit $tag --draft=false --title "DearStory $tag" --notes-file $manifestPath --repo $env:GH_REPO

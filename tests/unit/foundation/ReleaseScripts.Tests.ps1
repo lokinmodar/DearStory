@@ -302,6 +302,12 @@ exit /b 0
     if ($firstChecksumsHash -ne $secondChecksumsHash) {
         throw "Expected same-commit SHA256SUMS files to be byte-for-byte deterministic, got '$firstChecksumsHash' and '$secondChecksumsHash'."
     }
+
+    $firstManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $firstReleaseRoot 'release-manifest.json')).Hash
+    $secondManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $secondReleaseRoot 'release-manifest.json')).Hash
+    if ($firstManifestHash -ne $secondManifestHash) {
+        throw "Expected same-commit release-manifest.json files to be byte-for-byte deterministic, got '$firstManifestHash' and '$secondManifestHash'."
+    }
 }
 finally {
     $env:PATH = $originalPath
