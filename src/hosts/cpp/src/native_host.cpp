@@ -12,7 +12,7 @@
 #include <dearstory/protocol/codec.hpp>
 #include <dearstory/protocol/generated/messages.hpp>
 #include <dearstory/protocol/version.hpp>
-#include <dearstory/protocol/windows/named_pipe_client.hpp>
+#include <dearstory/transports/windows/named_pipe_client.hpp>
 #include <dearstory/sdk/story_context.hpp>
 #include <dearstory/sdk/story_registry.hpp>
 #include <dearstory/transports/windows/shared_memory_frame_channel.hpp>
@@ -231,7 +231,7 @@ namespace
     }
 
     void write_json_envelope(
-        protocol::windows::pipe_connection& connection,
+        transports::windows::pipe_connection& connection,
         protocol::version version,
         std::string_view type,
         nlohmann::json payload,
@@ -439,7 +439,7 @@ namespace
     }
 
     void publish_session_started(
-        protocol::windows::pipe_connection& connection,
+        transports::windows::pipe_connection& connection,
         protocol::version version,
         session_request const& request)
     {
@@ -459,7 +459,7 @@ namespace
     }
 
     void publish_frame_channel_ready(
-        protocol::windows::pipe_connection& connection,
+        transports::windows::pipe_connection& connection,
         protocol::version version,
         session_request const& request,
         std::string_view mapping_name)
@@ -483,7 +483,7 @@ namespace
     }
 
     void publish_frame_presented(
-        protocol::windows::pipe_connection& connection,
+        transports::windows::pipe_connection& connection,
         protocol::version version,
         session_request const& request,
         transports::windows::published_frame const& frame)
@@ -527,7 +527,7 @@ int native_host::run()
         imgui_context_scope imgui_scope{};
 
         timeout_scope timeout{};
-        auto connection = protocol::windows::named_pipe_client::connect(normalize_pipe_path(options_.pipe_name), timeout.token());
+        auto connection = transports::windows::named_pipe_client::connect(normalize_pipe_path(options_.pipe_name), timeout.token());
         connection.write_payload(protocol::encode(build_hello()));
 
         auto const response_payload = connection.read_payload(timeout.token());
@@ -617,7 +617,7 @@ int native_host::run()
             publish_frame_presented(connection, response->protocol, request, published);
         }
     }
-    catch (protocol::windows::pipe_exception const&)
+    catch (transports::windows::pipe_exception const&)
     {
         return exit_pipe;
     }

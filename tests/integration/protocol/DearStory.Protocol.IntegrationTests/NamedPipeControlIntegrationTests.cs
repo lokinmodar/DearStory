@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Pipes;
 using DearStory.Protocol.Generated;
-using DearStory.Protocol.Windows;
+using DearStory.Transport.Windows;
 using Xunit;
 
 namespace DearStory.Protocol.IntegrationTests;

@@ -234,8 +234,7 @@ headers and exported targets rather than direct repository include paths.
 
 ## Versioning and release shape
 
-Phase 2 will introduce one shared pre-1.0 version line, for example
-`0.1.0-alpha.<build>`, applied consistently to:
+Phase 2 uses the shared pre-1.0 version `0.1.0`, applied consistently to:
 
 - .NET package metadata;
 - generated package documentation/readme metadata;

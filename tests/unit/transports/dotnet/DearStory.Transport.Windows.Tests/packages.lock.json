@@ -163,8 +163,14 @@
           "xunit.v3.runner.common": "[3.2.2]"
         }
       },
-      "dearstory.transport.windows": {
+      "dearstory.protocol": {
         "type": "Project"
+      },
+      "dearstory.transport.windows": {
+        "type": "Project",
+        "dependencies": {
+          "DearStory.Protocol": "[0.1.0, )"
+        }
       }
     }
   }

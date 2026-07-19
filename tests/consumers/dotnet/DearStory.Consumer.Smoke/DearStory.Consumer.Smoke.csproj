@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RestoreSources>https://api.nuget.org/v3/index.json;$(RestoreSources);$(DearStoryLocalFeed)</RestoreSources>
+    <RestoreConfigFile>$(MSBuildProjectDirectory)\NuGet.config</RestoreConfigFile>
     <RestorePackagesPath>$(MSBuildProjectDirectory)\obj\packages</RestorePackagesPath>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
@@ -10,10 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DearStory.Protocol" Version="0.1.0-alpha*" />
-    <PackageReference Include="DearStory.Core" Version="0.1.0-alpha*" />
-    <PackageReference Include="DearStory.Sdk" Version="0.1.0-alpha*" />
-    <PackageReference Include="DearStory.Sdk.Generator" Version="0.1.0-alpha*" PrivateAssets="all" />
+    <PackageReference Include="DearStory.Sdk" Version="$(DearStoryPackageVersion)" />
+    <PackageReference Include="DearStory.Sdk.Generator" Version="$(DearStoryPackageVersion)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -27,6 +25,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="ValidateDearStoryPackageInputs" BeforeTargets="Restore">
+    <Error Condition="'$(DearStoryLocalFeed)' == ''" Text="DearStoryLocalFeed must point to the repository's local package feed." />
+    <Error Condition="'$(DearStoryPackageVersion)' == ''" Text="DearStoryPackageVersion must be supplied by the repository pack/test flow." />
+  </Target>
 
   <Target Name="ResetDearStoryLocalPackages" BeforeTargets="Restore" Condition="'$(DearStoryLocalFeed)' != ''">
     <RemoveDir Directories="

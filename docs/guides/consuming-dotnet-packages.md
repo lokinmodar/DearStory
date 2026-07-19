@@ -11,10 +11,8 @@ The SDK provides `[Story]`, `[StoryArg]`, and `StoryContext`. Add the generator 
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="DearStory.Protocol" Version="0.1.0-alpha*" />
-  <PackageReference Include="DearStory.Core" Version="0.1.0-alpha*" />
-  <PackageReference Include="DearStory.Sdk" Version="0.1.0-alpha*" />
-  <PackageReference Include="DearStory.Sdk.Generator" Version="0.1.0-alpha*" PrivateAssets="all" />
+  <PackageReference Include="DearStory.Sdk" Version="0.1.0" />
+  <PackageReference Include="DearStory.Sdk.Generator" Version="0.1.0" PrivateAssets="all" />
 </ItemGroup>
 ```
 
@@ -23,20 +21,20 @@ For local package validation, first create the package feed:
 ```powershell
 pwsh -NoProfile -File .\eng\pack.ps1 -Configuration Release
 $env:DearStoryLocalFeed = (Resolve-Path .\artifacts\packages\local-feed).Path
-dotnet test .\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj -c Release
+dotnet test .\tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj -c Release -p:DearStoryPackageVersion=0.1.0
 ```
 
 `eng\pack.ps1` writes the publishable `.nupkg` files to
 `artifacts\packages\dotnet` and copies the same packages to
 `artifacts\packages\local-feed`. The smoke project resolves the DearStory
-packages from the local-feed path supplied by `DearStoryLocalFeed` (while
-NuGet remains available for third-party dependencies), proving that consumers
+packages from the local-feed path supplied by `DearStoryLocalFeed`; package-source
+mapping keeps NuGet.org available only for the smoke project's third-party dependencies. This proves that consumers
 use the packaged public assemblies rather than repository project references.
 
-Consumers that use the local feed should append it to their restore sources:
+Consumers that use the local feed should pin the package version and place that feed first in their restore sources:
 
 ```xml
-<RestoreSources>$(RestoreSources);$(DearStoryLocalFeed)</RestoreSources>
+<RestoreSources>$(DearStoryLocalFeed);$(RestoreSources)</RestoreSources>
 ```
 
 For the repository's complete Release validation, use

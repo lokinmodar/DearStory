@@ -4,9 +4,7 @@ add_library(
     dearstory_protocol_cpp
     src/handshake.cpp
     src/codec.cpp
-    src/framing.cpp
-    src/windows/named_pipe_client.cpp
-    src/windows/named_pipe_server.cpp)
+    src/framing.cpp)
 add_library(DearStory::ProtocolCpp ALIAS dearstory_protocol_cpp)
 set_target_properties(dearstory_protocol_cpp PROPERTIES EXPORT_NAME ProtocolCpp)
 
@@ -40,4 +38,7 @@ install(
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    PATTERN "windows" EXCLUDE)

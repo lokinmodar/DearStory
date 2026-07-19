@@ -6,7 +6,6 @@ using DearStory.Core;
 using DearStory.Core.Sessions;
 using DearStory.Protocol;
 using DearStory.Protocol.Generated;
-using DearStory.Protocol.Windows;
 using DearStory.Sdk;
 using DearStory.Transport.Windows;
 using GeneratedProtocolVersion = DearStory.Protocol.Generated.ProtocolVersion;

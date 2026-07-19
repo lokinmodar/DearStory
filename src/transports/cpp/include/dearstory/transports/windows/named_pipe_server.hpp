@@ -10,21 +10,21 @@
 #include <dearstory/protocol/control_envelope.hpp>
 #include <dearstory/protocol/framing.hpp>
 
-namespace dearstory::protocol::windows {
+namespace dearstory::transports::windows {
 
 /// Represents a Win32 pipe failure surfaced as a protocol_error payload.
 class pipe_exception final : public std::runtime_error {
 public:
     /// Initializes a new instance of the pipe_exception class.
     /// \param error The machine-readable pipe failure payload.
-    explicit pipe_exception(protocol_error error);
+    explicit pipe_exception(protocol::protocol_error error);
 
     /// Gets the machine-readable pipe failure.
     /// \returns The captured pipe failure payload.
-    [[nodiscard]] protocol_error const& error() const noexcept;
+    [[nodiscard]] protocol::protocol_error const& error() const noexcept;
 
 private:
-    protocol_error error_;
+    protocol::protocol_error error_;
 };
 
 /// Represents one framed DearStory control connection over a Windows named pipe.
@@ -69,7 +69,7 @@ private:
     void close() noexcept;
 
     void* handle_{ nullptr };
-    frame_decoder decoder_{};
+    protocol::frame_decoder decoder_{};
     std::deque<std::string> buffered_frames_{};
     bool awaiting_more_bytes_{ false };
 };
@@ -108,4 +108,4 @@ private:
     void* handle_{ nullptr };
 };
 
-} // namespace dearstory::protocol::windows
+} // namespace dearstory::transports::windows

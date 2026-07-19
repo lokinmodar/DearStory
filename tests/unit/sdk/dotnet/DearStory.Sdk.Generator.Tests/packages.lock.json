@@ -189,7 +189,7 @@
       "dearstory.core": {
         "type": "Project",
         "dependencies": {
-          "DearStory.Protocol": "[0.1.0-alpha, )"
+          "DearStory.Protocol": "[0.1.0, )"
         }
       },
       "dearstory.protocol": {
@@ -198,7 +198,7 @@
       "dearstory.sdk": {
         "type": "Project",
         "dependencies": {
-          "DearStory.Core": "[0.1.0-alpha, )"
+          "DearStory.Core": "[0.1.0, )"
         }
       },
       "dearstory.sdk.generator": {

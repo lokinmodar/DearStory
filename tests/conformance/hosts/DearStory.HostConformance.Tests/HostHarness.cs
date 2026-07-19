@@ -7,7 +7,6 @@ using System.Text.Json.Nodes;
 using DearStory.Testing;
 using DearStory.Protocol;
 using DearStory.Protocol.Generated;
-using DearStory.Protocol.Windows;
 using DearStory.Transport.Windows;
 using GeneratedProtocolVersion = DearStory.Protocol.Generated.ProtocolVersion;
 

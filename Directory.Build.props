@@ -8,7 +8,7 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <VersionPrefix>0.1.0-alpha</VersionPrefix>
+    <VersionPrefix>0.1.0</VersionPrefix>
     <!-- Library projects must explicitly opt in to package publication. -->
     <IsPackable>false</IsPackable>
     <Authors>Dante</Authors>

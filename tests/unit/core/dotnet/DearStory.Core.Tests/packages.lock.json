@@ -166,7 +166,7 @@
       "dearstory.core": {
         "type": "Project",
         "dependencies": {
-          "DearStory.Protocol": "[1.0.0, )"
+          "DearStory.Protocol": "[0.1.0, )"
         }
       },
       "dearstory.protocol": {

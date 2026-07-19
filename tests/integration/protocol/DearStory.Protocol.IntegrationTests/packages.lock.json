@@ -165,6 +165,12 @@
       },
       "dearstory.protocol": {
         "type": "Project"
+      },
+      "dearstory.transport.windows": {
+        "type": "Project",
+        "dependencies": {
+          "DearStory.Protocol": "[0.1.0, )"
+        }
       }
     }
   }
