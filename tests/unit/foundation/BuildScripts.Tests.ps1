@@ -3,7 +3,9 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $buildScript = Join-Path $repositoryRoot 'eng\build.ps1'
 $testScript = Join-Path $repositoryRoot 'eng\test.ps1'
+$boundaryTestScript = Join-Path $repositoryRoot 'tests\unit\foundation\PublicPackageBoundaries.Tests.ps1'
 $testScriptContent = Get-Content -Raw $testScript
+$boundaryTestScriptContent = Get-Content -Raw $boundaryTestScript
 $consumerProject = Join-Path $repositoryRoot 'tests\consumers\dotnet\DearStory.Consumer.Smoke\DearStory.Consumer.Smoke.csproj'
 $consumerProjectContent = Get-Content -Raw $consumerProject
 $consumerNuGetConfig = Join-Path $repositoryRoot 'tests\consumers\dotnet\DearStory.Consumer.Smoke\NuGet.config'
@@ -14,6 +16,22 @@ if ($testScriptContent -notmatch 'tests\\unit\\core\\dotnet\\DearStory\.Core\.Te
 
 if ($testScriptContent -notmatch 'tests\\unit\\sdk\\dotnet\\DearStory\.Sdk\.Tests') {
     throw 'eng/test.ps1 must run the managed SDK tests.'
+}
+
+if ($boundaryTestScriptContent -notmatch "ValidateSet\('Debug', 'Release'\)") {
+    throw 'PublicPackageBoundaries.Tests.ps1 must accept Debug and Release configurations.'
+}
+
+if ($boundaryTestScriptContent -notmatch 'cmake --install \$buildDirectory --config \$Configuration --prefix \$installPrefix') {
+    throw 'PublicPackageBoundaries.Tests.ps1 must install the selected configuration.'
+}
+
+if ($testScriptContent -notmatch 'PublicPackageBoundaries\.Tests\.ps1.+''-Configuration'', \$Configuration') {
+    throw 'eng/test.ps1 must pass its selected configuration to PublicPackageBoundaries.Tests.ps1.'
+}
+
+if ($testScriptContent -notmatch 'CMAKE_CONFIGURATION_TYPES:STRING=\{0\}" -f \$Configuration') {
+    throw 'eng/test.ps1 must configure the native consumer with the selected configuration only.'
 }
 
 $installClearIndex = $testScriptContent.IndexOf('Remove-Item -LiteralPath $installPrefix -Recurse -Force', [StringComparison]::Ordinal)

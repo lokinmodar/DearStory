@@ -1,3 +1,9 @@
+[CmdletBinding()]
+param(
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Release'
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
@@ -9,7 +15,7 @@ if (Test-Path -LiteralPath $installPrefix) {
     Remove-Item -LiteralPath $installPrefix -Recurse -Force
 }
 
-cmake --install $buildDirectory --config Release --prefix $installPrefix
+cmake --install $buildDirectory --config $Configuration --prefix $installPrefix
 if ($LASTEXITCODE -ne 0) {
     throw "Expected C++ package install to succeed, got $LASTEXITCODE."
 }
