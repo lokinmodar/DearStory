@@ -48,7 +48,13 @@ if ([string]::IsNullOrWhiteSpace($SourceCommit)) {
 }
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$releaseRoot = Join-Path $repositoryRoot ("artifacts\releases\{0}" -f $versionInfo.Version)
+$outputRootPath = if ([System.IO.Path]::IsPathRooted($OutputRoot)) {
+    $OutputRoot
+}
+else {
+    Join-Path $repositoryRoot $OutputRoot
+}
+$releaseRoot = Join-Path ([System.IO.Path]::GetFullPath($outputRootPath)) $versionInfo.Version
 $dotnetReleaseDirectory = Join-Path $releaseRoot 'dotnet'
 $cppReleaseDirectory = Join-Path $releaseRoot 'cpp'
 $stagingInstallPrefix = Join-Path $repositoryRoot 'artifacts\install\dearstory-release'

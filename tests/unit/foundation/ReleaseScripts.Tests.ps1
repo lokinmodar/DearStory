@@ -59,3 +59,11 @@ if (@($releaseLines | Select-String -SimpleMatch 'cmake --install .\build\window
 if (@($releaseLines | Select-String -SimpleMatch 'Compress-Archive').Count -ne 1) {
     throw 'Expected release WhatIf output to include the public C++ archive creation exactly once.'
 }
+
+$customOutputRoot = Join-Path $repositoryRoot '.artifacts\custom-release-output'
+$customReleaseOutput = & pwsh -NoProfile -File $releaseScript -ReleaseMode Local -ExpectedVersion $versionInfo.Version -SourceRef 'refs/heads/test' -SourceCommit '0123456789abcdef0123456789abcdef01234567' -OutputRoot $customOutputRoot -SkipBuild -SkipTest -WhatIf 2>&1
+$customReleaseLines = @($customReleaseOutput | ForEach-Object { $_.ToString() })
+$expectedCustomDotnetDirectory = Join-Path (Join-Path $customOutputRoot $versionInfo.Version) 'dotnet'
+if (@($customReleaseLines | Select-String -SimpleMatch $expectedCustomDotnetDirectory).Count -eq 0) {
+    throw "Expected release WhatIf output to use custom OutputRoot '$customOutputRoot'."
+}
