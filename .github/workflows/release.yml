@@ -56,10 +56,16 @@ jobs:
             }
 
             git fetch origin main
-            $sourceCommit = (git rev-parse --verify --end-of-options "$env:MANUAL_REF^{commit}").Trim()
+            if ($LASTEXITCODE -ne 0) {
+              throw "Manual release ancestry refresh from origin/main failed."
+            }
+
+            $sourceCommitOutput = git rev-parse --verify --end-of-options "$env:MANUAL_REF^{commit}"
             if ($LASTEXITCODE -ne 0) {
               throw "Manual release ref '$env:MANUAL_REF' could not be resolved to a commit."
             }
+
+            $sourceCommit = $sourceCommitOutput.Trim()
 
             git merge-base --is-ancestor $sourceCommit origin/main
             if ($LASTEXITCODE -ne 0) {
@@ -370,6 +376,14 @@ jobs:
               Path = $manifestPath
             }
           )
+
+          $approvedReleaseAssetNames = @($requiredReleaseAssets | ForEach-Object { $_.Name })
+          $unexpectedReleaseAssets = @($existingReleaseAssets | Where-Object {
+              $approvedReleaseAssetNames -cnotcontains $_.name
+            })
+          if ($unexpectedReleaseAssets.Count -ne 0) {
+            throw "GitHub release '$tag' has unexpected draft asset(s): $($unexpectedReleaseAssets.name -join ', ')."
+          }
 
           foreach ($requiredReleaseAsset in $requiredReleaseAssets) {
             Sync-ReleaseAsset -AssetName $requiredReleaseAsset.Name -AssetPath $requiredReleaseAsset.Path

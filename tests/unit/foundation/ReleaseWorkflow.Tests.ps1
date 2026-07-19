@@ -28,7 +28,7 @@ function Get-ReleaseAssetReconciliationScript {
 function Invoke-ReleaseAssetReconciliation {
     param(
         [Parameter(Mandatory)]
-        [ValidateSet('Absent', 'Identical', 'Conflicting')]
+        [ValidateSet('Absent', 'Identical', 'Conflicting', 'Unexpected')]
         [string] $Scenario
     )
 
@@ -67,6 +67,9 @@ function Invoke-ReleaseAssetReconciliation {
                 $conflictingAssetName = "DearStory-cpp-$version-windows-msvc-x64.zip"
                 Set-Content -LiteralPath (Join-Path $remoteAssetRoot $conflictingAssetName) -Value 'conflicting-cpp-archive' -NoNewline
                 $existingReleaseAssetNames = @($conflictingAssetName)
+            }
+            'Unexpected' {
+                $existingReleaseAssetNames = @('unapproved-release-asset.txt')
             }
         }
 
@@ -176,7 +179,7 @@ Describe 'Release workflow' {
         ).Groups['script'].Value
         $validationScript = [regex]::Match(
             $contextScript,
-            '(?ms)(?<validation>^\s{12}git fetch origin main.*?^\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ref.*?^\s{12}\}\r?\n\r?\n\s{12}git merge-base --is-ancestor \$sourceCommit origin/main\r?\n\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ref.*?^\s{12}\})'
+            '(?ms)(?<validation>^\s{12}git fetch origin main\r?\n\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ancestry refresh from origin/main failed\."\r?\n\s{12}\}\r?\n\r?\n\s{12}\$sourceCommitOutput = git rev-parse --verify --end-of-options "\$env:MANUAL_REF\^\{commit\}"\r?\n\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ref.*?^\s{12}\}\r?\n\r?\n\s{12}\$sourceCommit = \$sourceCommitOutput\.Trim\(\)\r?\n\r?\n\s{12}git merge-base --is-ancestor \$sourceCommit origin/main\r?\n\s{12}if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s{14}throw "Manual release ref.*?^\s{12}\})'
         ).Groups['validation'].Value -replace '(?m)^ {12}', ''
         $validationScript | Should Not BeNullOrEmpty
 
@@ -246,6 +249,22 @@ Describe 'Release workflow' {
         finally {
             Remove-Item -LiteralPath $fixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
+    }
+
+    It 'fails immediately when the manual ancestry refresh cannot fetch origin main' {
+        $workflow = Get-Content .\.github\workflows\release.yml -Raw
+        $contextScript = [regex]::Match(
+            $workflow,
+            '(?ms)^\s{6}- name: Resolve release context.*?^\s{8}run: \|\r?\n(?<script>.*?)(?=^\s{2}\S)'
+        ).Groups['script'].Value
+
+        $contextScript | Should Match '(?s)git fetch origin main\r?\n\s*if \(\$LASTEXITCODE -ne 0\) \{\r?\n\s*throw "Manual release ancestry refresh from origin/main failed\."\r?\n\s*\}\r?\n\r?\n\s*\$sourceCommitOutput = git rev-parse'
+        $sourceResolution = $contextScript.IndexOf('$sourceCommitOutput = git rev-parse')
+        $invalidRefFailure = $contextScript.IndexOf("throw `"Manual release ref '")
+        $sourceCommitTrim = $contextScript.IndexOf('$sourceCommit = $sourceCommitOutput.Trim()')
+        $sourceResolution | Should BeGreaterThan -1
+        $invalidRefFailure | Should BeGreaterThan $sourceResolution
+        $sourceCommitTrim | Should BeGreaterThan $invalidRefFailure
     }
 
     It 'passes validated build inputs to PowerShell through the environment' {
@@ -397,6 +416,7 @@ Describe 'Release workflow' {
         $publishScript | Should Match 'Get-FileHash -LiteralPath \$AssetPath -Algorithm SHA256'
         $publishScript | Should Match 'Get-FileHash -LiteralPath \$downloadedAssetPath -Algorithm SHA256'
         $publishScript | Should Match 'already exists with different content'
+        $publishScript | Should Match 'has unexpected draft asset\(s\)'
         $publishScript | Should Not Match 'gh release upload .*--clobber'
 
         $assetReconciliation = $publishScript.IndexOf('foreach ($requiredReleaseAsset in $requiredReleaseAssets)')
@@ -430,6 +450,11 @@ Describe 'Release workflow' {
     It 'fails when an existing draft asset has conflicting content' {
         { Invoke-ReleaseAssetReconciliation -Scenario Conflicting } |
             Should Throw "GitHub release asset 'DearStory-cpp-0.1.0-windows-msvc-x64.zip' already exists with different content."
+    }
+
+    It 'rejects unexpected draft assets before NuGet publication or release finalization' {
+        { Invoke-ReleaseAssetReconciliation -Scenario Unexpected } |
+            Should Throw "GitHub release 'v0.1.0' has unexpected draft asset(s): unapproved-release-asset.txt."
     }
 
     It 'contains syntactically valid PowerShell in release state steps' {
